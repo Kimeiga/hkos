@@ -1,22 +1,22 @@
 .discard-river {
-    grid-area: center;
-    position: relative;
-    width: 100%;
-    height: 100%;
-    /* Define a structured grid or use absolute positioning relative to center */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    pointer-events: none;
-    /* Let clicks pass through if needed */
+  grid-area: center;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  /* Define a structured grid or use absolute positioning relative to center */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  /* Let clicks pass through if needed */
 }
 
 /* The Pond (Dead Center) */
 .river-center {
-    width: 120px;
-    height: 120px;
-    /* background: rgba(0,0,0,0.1); Optional debug viz */
-    position: relative;
+  width: 120px;
+  height: 120px;
+  /* background: rgba(0,0,0,0.1); Optional debug viz */
+  position: relative;
 }
 
 /* 
@@ -32,113 +32,58 @@
 */
 
 .river-section {
-    position: absolute;
-    display: flex;
-    gap: 0;
+  position: absolute;
+  display: flex;
+  gap: 0;
 }
 
 /* Bottom (User) - South */
 .river-section.south {
-    top: 100%;
-    /* Below center box */
-    left: 50%;
-    transform: translateX(-50%);
-    width: 288px;
-    /* 8 tiles * 36px (Portrait width is 36) -> Wait, landscape is 48.
-                 User discard is Landscape? No, User is Bottom.
-                 Usually Bottom Discards are Portrait (Upright). 
-                 Wait, standard mahjong discards:
-                 Bottom player discards are Upright (Portrait).
-                 Side players discards are Sideways (Landscape).
-                 
-                 Spec: "User: Fills Left-to-Right. Row 1 is closest to the player... Row 2 stacks above."
-                 Row width = 8 tiles.
-                 Tile width = 36px (Portrait).
-                 Total width = 8 * 36 = 288px.
-              */
-    flex-direction: row;
-    flex-wrap: wrap-reverse;
-    /* Fills bottom-up? 
-     "Row 2 stacks above Row 1". 
-     If Row 1 is closest to player (Bottom), and Row 2 is above (Top),
-     then standard flex-wrap: wrap starts at top.
-     wrap-reverse starts at bottom. 
-     So if we want Row 1 at Bottom (Player), we use wrap-reverse?
-     Actually: HTML order is 1, 2, 3...
-     If we want [1,2,3] to be at Bottom, and [9,10,11] at Top.
-     wrap-reverse puts first items at bottom. YES.
-  */
-    justify-content: center;
-    /* Or flex-start? "Fills Left-to-Right" */
-    justify-content: flex-start;
-    padding-top: 10px;
+  top: 160%;
+  /* Pushed significantly down from center (was 100%) to be near Melds */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 288px;
+  flex-direction: row;
+  flex-wrap: wrap-reverse;
+  justify-content: flex-start;
+  padding-top: 10px;
 }
 
 /* Right (East) */
 .river-section.east {
-    left: 100%;
-    /* Right of center */
-    top: 50%;
-    transform: translateY(-50%);
-    height: 288px;
-    /* 8 tiles * 36px? No, Side tiles are Landscape (48x36).
-                    Wait, side discards are usually rotated 90deg.
-                    Side Tile width = 48px. Height = 36px.
-                    If we stack 8 vertically? 
-                    "Right Bot: Fills Top-to-Bottom... Row 2 stacks to the left."
-                    So Columns.
-                    Column 1 (Rightmost) fills T->B.
-                    Column 2 (Left of Col 1) stacks Left.
-                 */
-    display: flex;
-    flex-direction: column;
-    /* T->B */
-    flex-wrap: wrap-reverse;
-    /* wrap-reverse for column:
-     Standard wrap: Col 1, then Col 2 to the Right.
-     wrap-reverse: Col 1, then Col 2 to the Left? YES.
-  */
-    align-content: flex-start;
-    /* Align columns to start (Right edge?)
-     flex-wrap: wrap-reverse usually aligns lines to Cross-End.
-     For column, Cross Axis is Horizontal (L->R).
-     End is Right.
-     So wrap-reverse should align to Right. YES.
-  */
-    padding-left: 10px;
+  left: 160%;
+  /* Pushed Right */
+  top: 50%;
+  transform: translateY(-50%);
+  height: 288px;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap-reverse;
+  align-content: flex-start;
+  padding-left: 10px;
 }
 
 /* Top (North) */
 .river-section.north {
-    bottom: 100%;
-    /* Above center */
-    left: 50%;
-    transform: translateX(-50%);
-    width: 288px;
-    flex-direction: row-reverse;
-    /* R->L. "Fills Right-to-Left" */
-    flex-wrap: wrap;
-    /* "Row 1 closest to top... Row 2 stacks down".
-      Closest to Top = Start of Cross Axis.
-      Standard wrap starts at Cross Start (Top).
-      So wrap is correct.
-   */
-    padding-bottom: 10px;
+  bottom: 160%;
+  /* Pushed Up */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 288px;
+  flex-direction: row-reverse;
+  flex-wrap: wrap;
+  padding-bottom: 10px;
 }
 
 /* Left (West) */
 .river-section.west {
-    right: 100%;
-    /* Left of center */
-    top: 50%;
-    transform: translateY(-50%);
-    height: 288px;
-    flex-direction: column-reverse;
-    /* B->T. "Fills Bottom-to-Top" */
-    flex-wrap: wrap;
-    /* "Row 2 stacks to the right".
-      Standard wrap moves Right.
-      So wrap is correct.
-  */
-    padding-right: 10px;
+  right: 160%;
+  /* Pushed Left */
+  top: 50%;
+  transform: translateY(-50%);
+  height: 288px;
+  flex-direction: column-reverse;
+  flex-wrap: wrap;
+  padding-right: 10px;
 }

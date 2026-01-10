@@ -95,13 +95,6 @@ export const GameTable: React.FC = () => {
              but we keep this container if we need other overlays later.
              Currently empty/transparent.
          */}
-
-        {/* Draw button for human player */}
-        {currentTurn === 'south' && turnPhase === 'draw' && phase === 'playing' && (
-          <button className="draw-button" onClick={handleDraw}>
-            Draw Tile
-          </button>
-        )}
       </div>
 
       {/* Player hands in their positions */}
@@ -128,7 +121,7 @@ export const GameTable: React.FC = () => {
           onClick={sortHand}
           style={{
             position: 'absolute',
-            bottom: '220px', /* Lifted well above the hand area */
+            bottom: '150px', /* Lowered closer to hand/melds */
             left: '20px',
             zIndex: 60,
             padding: '8px 16px',

@@ -69,9 +69,8 @@
 .player-hand.left .exposed-zone,
 .player-hand.right .exposed-zone {
   flex-direction: column;
-  flex-wrap: wrap;
-  max-height: 80vh;
-  /* Prevent overflow */
+  flex-wrap: nowrap;
+  /* Don't wrap columns, stack them tight */
   justify-content: center;
 }
 
@@ -79,7 +78,8 @@
 .player-hand.bottom .exposed-zone,
 .player-hand.top .exposed-zone {
   flex-direction: row;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  /* Don't wrap lines, stretch them */
   max-width: 90vw;
 }
 
