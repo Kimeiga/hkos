@@ -100,6 +100,7 @@ export const GameTable: React.FC = () => {
             tiles={players[wind].hand}
             melds={players[wind].melds}
             flowers={players[wind].flowers}
+            discards={players[wind].discards}
             position={positionMap[wind]}
             isCurrentTurn={currentTurn === wind}
             isHuman={isHuman}

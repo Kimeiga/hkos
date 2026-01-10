@@ -9,6 +9,7 @@ interface PlayerHandProps {
   tiles: TileType[];
   melds: Meld[];
   flowers: TileType[];
+  discards: TileType[];
   position: 'bottom' | 'left' | 'top' | 'right';
   isCurrentTurn: boolean;
   isHuman: boolean;
@@ -24,6 +25,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
   tiles,
   melds,
   flowers,
+  discards,
   position,
   isCurrentTurn,
   isHuman,
@@ -94,7 +96,19 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
       )}
     </div>
 
-    {/* Hand Container Removed - Direct Hand Tiles */}
+    {/* Discard pile */}
+    {discards.length > 0 && (
+      <div className={`discard-pile ${isVertical ? 'discard-pile-vertical' : ''}`}>
+        {discards.map(tile => (
+          <Tile
+            key={tile.instanceId}
+            tile={tile}
+            rotation={rotation}
+            enableLayoutAnimation={true}
+          />
+        ))}
+      </div>
+    )}
 
     {/* Hand tiles */}
     <div className={`hand-tiles ${isVertical ? 'hand-tiles-vertical' : ''}`} style={{ minWidth: isHuman ? 'auto' : 'auto' }}>

@@ -66,16 +66,48 @@
   /* Push to Right Edge */
 }
 
-/* --- Discard Zone --- */
-.discard-zone {
+/* --- Discard Pile --- */
+.discard-pile {
   display: flex;
-  gap: 0;
-  /* Fixed sizes to ensure 8-tile rows? 
-     For South/North: Width = 8 * 36px = 288px.
-     For Sides: Height/Width? 
-     Side Discards (90deg) have width 48px, height 36px.
-     If we stack them in columns...
-  */
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  min-height: 40px;
+  max-width: 320px;
+}
+
+/* Vertical orientation for side players */
+.discard-pile-vertical {
+  flex-direction: column;
+  max-width: none;
+  max-height: 300px;
+}
+
+/* Position-specific adjustments */
+.player-hand.bottom .discard-pile {
+  justify-content: center;
+}
+
+.player-hand.top .discard-pile {
+  justify-content: center;
+}
+
+.player-hand.left .discard-pile,
+.player-hand.right .discard-pile {
+  align-items: center;
+}
+
+/* Small tiles in discard piles for all players */
+.discard-pile .tile {
+  width: 28px !important;
+  height: 36px !important;
+}
+
+.discard-pile-vertical .tile {
+  width: 36px !important;
+  height: 28px !important;
 }
 
 /* Bottom/Top: Horizontal Discard Layout */
