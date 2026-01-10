@@ -45,6 +45,9 @@ interface GameStore extends GameState {
   updateTeacherSuggestion: () => void;
   toggleTeacher: () => void;
   setAnimatingTile: (tile: Tile | null, target: 'discard' | 'draw' | null) => void;
+  isAutoPlay: boolean;
+  toggleAutoPlay: () => void;
+  playAutoTurn: () => Promise<void>;
 
   // AI actions
   playAITurn: () => Promise<void>;
@@ -330,6 +333,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
       lastDiscard: null,
       lastDiscardBy: null,
     });
+
+    // If AI, trigger turn (discard)
+    if (!players[player].isHuman) {
+      setTimeout(() => get().playAITurn(), 600);
+    }
   },
 
   declareKong: (player: Wind, tiles: Tile[]) => {
@@ -362,6 +370,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
         hand: sortTiles([...players[player].hand, replacement]),
       };
       set({ deadWall, players, turnPhase: 'discard' });
+
+      // If AI, trigger turn (discard) after replacement
+      if (!players[player].isHuman) {
+        setTimeout(() => get().playAITurn(), 600);
+      }
     }
   },
 
@@ -395,6 +408,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
       lastDiscard: null,
       lastDiscardBy: null,
     });
+
+    // If AI, trigger turn (discard)
+    if (!players[player].isHuman) {
+      setTimeout(() => get().playAITurn(), 600);
+    }
   },
 
   declareWin: (player: Wind) => {
@@ -410,29 +428,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
   passTurn: () => {
     console.log('[Game] Player passed turn.');
     get().nextTurn();
-  },
-
-  nextTurn: () => {
-    const state = get();
-    const turnOrder: Wind[] = ['east', 'south', 'west', 'north'];
-    const currentIdx = turnOrder.indexOf(state.currentTurn);
-    const nextTurn = turnOrder[(currentIdx + 1) % 4];
-
-    console.log(`[Game] Turn change: ${state.currentTurn} -> ${nextTurn}`);
-
-    set({
-      currentTurn: nextTurn,
-      turnPhase: 'draw',
-    });
-
-    // If AI player, play their turn
-    if (!state.players[nextTurn].isHuman) {
-      console.log(`[Game] Queueing AI turn for ${nextTurn}...`);
-      setTimeout(() => get().playAITurn(), 800);
-    } else {
-      console.log('[Game] Human turn start. Auto-drawing...');
-      setTimeout(() => get().drawTile(nextTurn), 500);
-    }
   },
 
   updateTeacherSuggestion: () => {
@@ -474,63 +469,130 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   setAnimatingTile: (tile, target) => set({ animatingTile: tile, animationTarget: target }),
 
+  // Auto Play State
+  isAutoPlay: false,
+
+  toggleAutoPlay: () => {
+    const state = get();
+    const newAuto = !state.isAutoPlay;
+    console.log(`[Game] Toggling Auto Play: ${newAuto}`);
+    set({ isAutoPlay: newAuto });
+
+    // If it's currently human turn and we just turned it ON, trigger move
+    if (newAuto && state.currentTurn === HUMAN_SEAT && state.phase === 'playing' && state.turnPhase === 'discard') {
+      get().playAutoTurn();
+    }
+  },
+
+  playAutoTurn: async () => {
+    const state = get();
+    // Guard: Only play if auto is ON, it's human turn, AND game is still playing
+    if (!state.isAutoPlay || state.currentTurn !== HUMAN_SEAT || state.phase !== 'playing') {
+      console.log('[Game] Auto Play skipped (condition not met)', {
+        auto: state.isAutoPlay,
+        turn: state.currentTurn,
+        phase: state.phase
+      });
+      return;
+    }
+
+    console.log('[Game] Auto-playing human turn...');
+
+    // Suggestion logic
+    const humanPlayer = state.players[HUMAN_SEAT];
+    let tileToDiscard = humanPlayer.hand[humanPlayer.hand.length - 1]; // Default: Discard drawn tile
+
+    try {
+      if (humanPlayer.hand.length % 3 === 2) {
+        const suggestion = suggestDiscard(
+          humanPlayer.hand,
+          humanPlayer.melds,
+          HUMAN_SEAT,
+          state.roundWind
+        );
+        if (suggestion && suggestion.recommendedTile) {
+          // Find the actual tile instance in hand that matches the recommendation
+          const match = humanPlayer.hand.find(t => t.instanceId === suggestion.recommendedTile.instanceId);
+          if (match) {
+            tileToDiscard = match;
+            console.log('[Game] Auto Play found best move:', tileToDiscard.category, tileToDiscard.value);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[Game] Auto Play error calculating best move:', err);
+    }
+
+    // Simulate think time
+    await new Promise(r => setTimeout(r, 800));
+
+    // Act
+    get().discardTile(HUMAN_SEAT, tileToDiscard);
+  },
+
   checkClaims: async (tile: Tile, fromPlayer: Wind) => {
     const state = get();
     const turnOrder: Wind[] = ['east', 'south', 'west', 'north'];
     const fromIdx = turnOrder.indexOf(fromPlayer);
-
-    // Check in turn order starting from next player for fairness priority (win overrides all, but typically checked in order)
-    // Actually, standard Mahjong: Win > Pong/Kong > Chow.
-    // We will iterate all other players.
-
-    // For simplicity in this async flow: 
-    // 1. Check Wins (all other players). If anyone wins, game over.
-    // 2. Check Pong/Kong (all other players). 
-    // 3. Check Chow (only next player).
-
     const otherPlayers = turnOrder.filter(p => p !== fromPlayer);
 
-    // 1. Check WIN
+    // 1. Check WIN (Priority)
     for (const p of otherPlayers) {
       if (canWin(state.players[p].hand, state.players[p].melds, tile)) {
+
+        // Human Logic
         if (state.players[p].isHuman) {
+          // If Auto Play is ON: Auto-Win!
+          if (state.isAutoPlay) {
+            console.log('[Game] Auto Play: TAKING WIN!');
+            await new Promise(r => setTimeout(r, 600));
+            get().declareWin(p);
+            return true;
+          }
+
           console.log('[Game] Offering WIN to Human');
           set({
             claimOffer: { tile, fromPlayer, canWin: true, canPong: false, canKong: false, canChow: false }
           });
           return true; // Pause for human
-        } else {
+        }
+
+        // AI Logic
+        else {
           console.log(`[Game] AI ${p} declares WIN`);
-          // AI Always Wins
           get().declareWin(p);
           return true;
         }
       }
     }
 
-    // 2. Check Pong/Kong 
-    // (Technically duplicate checks if multiple can pong same tile? (impossible for 3 matching in hand))
+    // 2. Check Pong/Kong (Standard loops)
     for (const p of otherPlayers) {
       const canP = canPong(state.players[p].hand, tile);
       const canK = canKong(state.players[p].hand, tile);
 
       if (canP || canK) {
         if (state.players[p].isHuman) {
+          // Auto Play: For now, skip optional claims to keep it simple/defensive/fast
+          // Or we could implement a basic heuristic? 
+          // Let's Skip for now to favor "Closed Hand" unless user intervenes.
+          if (state.isAutoPlay) {
+            console.log('[Game] Auto Play: Skipping Pong/Kong to keep hand closed.');
+            continue;
+          }
+
           console.log('[Game] Offering Pong/Kong to Human');
           set({
             claimOffer: { tile, fromPlayer, canWin: false, canPong: canP, canKong: canK, canChow: false }
           });
           return true;
         } else {
-          // AI Random Logic: 50% chance to Pong/Kong
+          // AI Logic from before
           if (Math.random() > 0.5) {
             if (canK) {
-              console.log(`[Game] AI ${p} declares KONG`);
-              // Find matching tiles for Kong
               const matching = state.players[p].hand.filter(t => tilesSameType(t, tile));
               get().declareKong(p, [...matching, tile]);
             } else {
-              console.log(`[Game] AI ${p} declares PONG`);
               get().declarePong(p, fromPlayer);
             }
             return true;
@@ -541,20 +603,23 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     // 3. Check Chow (Next player only)
     const nextPlayer = turnOrder[(fromIdx + 1) % 4];
-    if (nextPlayer !== fromPlayer) { // Should always be true
+    if (nextPlayer !== fromPlayer) {
       const chowSets = canChow(state.players[nextPlayer].hand, tile);
       if (chowSets.length > 0) {
         if (state.players[nextPlayer].isHuman) {
-          console.log('[Game] Offering CHOW to Human');
-          set({
-            claimOffer: { tile, fromPlayer, canWin: false, canPong: false, canKong: false, canChow: true, chowSets }
-          });
-          return true;
+          if (state.isAutoPlay) {
+            console.log('[Game] Auto Play: Skipping Chow.');
+            // Fall through to return false
+          } else {
+            console.log('[Game] Offering CHOW to Human');
+            set({
+              claimOffer: { tile, fromPlayer, canWin: false, canPong: false, canKong: false, canChow: true, chowSets }
+            });
+            return true;
+          }
         } else {
-          // AI Random Logic: 50% chance to Chow
+          // AI Logic
           if (Math.random() > 0.5) {
-            console.log(`[Game] AI ${nextPlayer} declares CHOW`);
-            // Pick random set
             const setTiles = chowSets[Math.floor(Math.random() * chowSets.length)];
             get().declareChow(nextPlayer, [...setTiles, tile]);
             return true;
@@ -564,6 +629,37 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
 
     return false;
+  },
+
+  nextTurn: () => {
+    const state = get();
+    const turnOrder: Wind[] = ['east', 'south', 'west', 'north'];
+    const currentIdx = turnOrder.indexOf(state.currentTurn);
+    const nextTurn = turnOrder[(currentIdx + 1) % 4];
+
+    console.log(`[Game] Turn change: ${state.currentTurn} -> ${nextTurn}`);
+
+    set({
+      currentTurn: nextTurn,
+      turnPhase: 'draw',
+    });
+
+    // Check if next player is Human
+    if (state.players[nextTurn].isHuman) {
+      console.log('[Game] Human turn start. Auto-drawing...');
+      setTimeout(() => {
+        get().drawTile(nextTurn);
+        // If Auto Play matches, trigger auto turn after draw
+        if (get().isAutoPlay) {
+          get().playAutoTurn();
+        }
+      }, 500);
+    }
+    // AI Player
+    else {
+      console.log(`[Game] Queueing AI turn for ${nextTurn}...`);
+      setTimeout(() => get().playAITurn(), 800);
+    }
   },
 
   resolveClaim: (action, data) => {

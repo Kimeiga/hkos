@@ -54,6 +54,17 @@ export const GameStateBar: React.FC<GameStateBarProps> = ({
                 </div>
             </div>
 
+            {/* Center: Controls */}
+            <div className="center-controls">
+                <button
+                    className={`auto-play-btn ${useGameStore(state => state.isAutoPlay) ? 'active' : ''}`}
+                    onClick={() => useGameStore.getState().toggleAutoPlay()}
+                    title="Toggle Auto Play"
+                >
+                    {useGameStore(state => state.isAutoPlay) ? 'AUTO ON' : 'AUTO OFF'}
+                </button>
+            </div>
+
             {/* Right Widget: Player Status */}
             <div className="player-strip">
                 {sortedPlayers.map((wind) => {

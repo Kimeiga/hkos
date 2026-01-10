@@ -35,6 +35,7 @@ export const GameTable: React.FC = () => {
     claimOffer,
     resolveClaim,
     dealerSeat,
+    winner,
   } = useGameStore();
 
   // Start game on mount
@@ -136,54 +137,79 @@ export const GameTable: React.FC = () => {
 
       {/* Real Action Panel driven by claimOffer */}
       {claimOffer && (
-        <div className="action-panel-overlay">
-          <div className="action-panel">
-            <h3>Claim Tile?</h3>
-            <div className="action-buttons">
-              {claimOffer.canWin && (
-                <button className="action-btn win" onClick={() => resolveClaim('win')}>
-                  WIN (Hu)
-                </button>
-              )}
-              {claimOffer.canPong && (
-                <button className="action-btn pong" onClick={() => resolveClaim('pong')}>
-                  PONG
-                </button>
-              )}
-              {claimOffer.canKong && (
-                <button className="action-btn kong" onClick={() => resolveClaim('kong')}>
-                  KONG
-                </button>
-              )}
-              {claimOffer.canChow && (
-                <div className="chow-options">
-                  {claimOffer.chowSets?.map((set, i) => (
-                    <button key={i} className="action-btn chow" onClick={() => resolveClaim('chow', set)}>
-                      CHOW {set[0].value}-{set[1].value}
-                    </button>
-                  ))}
-                </div>
-              )}
-              <button className="action-btn pass" onClick={() => resolveClaim('pass')}>
-                PASS
-              </button>
-            </div>
-          </div>
-        </div>
+        <ActionOverlay claimOffer={claimOffer} resolveClaim={resolveClaim} />
       )}
 
       {phase === 'finished' && (
-        <div className="game-over-overlay">
-          <div className="game-over-content">
-            <h2>Game Over</h2>
-            <p>{useGameStore(state => state.winner ? `${state.winner.toUpperCase()} Wins!` : 'Draw Game')}</p>
-            <button onClick={initGame}>Play Again</button>
-          </div>
-        </div>
+        <GameOverOverlay winner={winner} onRestart={initGame} />
       )}
     </div>
   );
 };
+
+// Sub-components to ensure clean render tree and avoid hook issues
+interface ClaimOffer {
+  tile: import('../types/tile').Tile;
+  fromPlayer: Wind;
+  canPong: boolean;
+  canKong: boolean;
+  canChow: boolean;
+  canWin: boolean;
+  chowSets?: import('../types/tile').Tile[][];
+}
+
+const ActionOverlay: React.FC<{
+  claimOffer: ClaimOffer;
+  resolveClaim: (action: 'pass' | 'pong' | 'kong' | 'chow' | 'win', data?: import('../types/tile').Tile[]) => void;
+}> = ({ claimOffer, resolveClaim }) => (
+  <div className="action-panel-overlay">
+    <div className="action-panel">
+      <h3>Claim Tile?</h3>
+      <div className="action-buttons">
+        {claimOffer.canWin && (
+          <button className="action-btn win" onClick={() => resolveClaim('win')}>
+            WIN (Hu)
+          </button>
+        )}
+        {claimOffer.canPong && (
+          <button className="action-btn pong" onClick={() => resolveClaim('pong')}>
+            PONG
+          </button>
+        )}
+        {claimOffer.canKong && (
+          <button className="action-btn kong" onClick={() => resolveClaim('kong')}>
+            KONG
+          </button>
+        )}
+        {claimOffer.canChow && (
+          <div className="chow-options">
+            {claimOffer.chowSets?.map((set: import('../types/tile').Tile[], i: number) => (
+              <button key={i} className="action-btn chow" onClick={() => resolveClaim('chow', set)}>
+                CHOW {set[0].value}-{set[1].value}
+              </button>
+            ))}
+          </div>
+        )}
+        <button className="action-btn pass" onClick={() => resolveClaim('pass')}>
+          PASS
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+const GameOverOverlay: React.FC<{
+  winner: string | null;
+  onRestart: () => void;
+}> = ({ winner, onRestart }) => (
+  <div className="game-over-overlay">
+    <div className="game-over-content">
+      <h2>Game Over</h2>
+      <p>{winner ? `${winner.toUpperCase()} Wins!` : 'Draw Game'}</p>
+      <button onClick={onRestart}>Play Again</button>
+    </div>
+  </div>
+);
 
 export default GameTable;
 

@@ -82,8 +82,8 @@
 .discard-pile-vertical {
   flex-direction: column;
   max-width: none;
-  max-height: 220px;
-  /* Limit height to prevent overlap */
+  max-height: 300px;
+  /* Constrain height to force column wrapping */
   flex-wrap: wrap-reverse;
   /* Stack columns */
 }
@@ -102,8 +102,11 @@
 .player-hand.left .discard-pile,
 .player-hand.right .discard-pile {
   align-items: center;
-  height: 260px;
-  /* Ensure height for column flow */
+  height: 300px;
+  /* consistent with max-height to ensure reliable wrapping */
+  max-height: 300px;
+  min-width: auto;
+  /* Revert fixed width, let columns stack naturally */
   /* Width will auto-fit the columns */
 }
 
@@ -114,8 +117,10 @@
 }
 
 .discard-pile-vertical .tile {
-  width: 36px !important;
-  height: 28px !important;
+  width: 32px !important;
+  /* Visual Width (Landscape) */
+  height: 24px !important;
+  /* Visual Height */
 }
 
 /* Bottom/Top: Horizontal Discard Layout */
