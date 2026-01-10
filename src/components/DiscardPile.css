@@ -1,0 +1,91 @@
+.discard-pile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px;
+  /* Size constraints to prevent layout jumping */
+  min-width: 40px;
+  min-height: 40px;
+}
+
+.discard-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 2px;
+  letter-spacing: 1px;
+}
+
+.discards-container {
+  display: flex;
+  gap: 2px;
+}
+
+.discard-row {
+  display: flex;
+  gap: 1px;
+}
+
+/* 
+  SOUTH (Bottom Player)
+  - Stacking: Bottom -> Top (Row 1 bottom, Row 2 above it) -> column-reverse
+  - Fills: Left -> Right -> row
+*/
+.discard-pile.south .discards-container {
+  flex-direction: column-reverse;
+  /* Stacks rows upwards */
+  align-items: center;
+}
+
+.discard-pile.south .discard-row {
+  flex-direction: row;
+  /* Fills L->R */
+}
+
+/* 
+  NORTH (Top Player)
+  - Stacking: Top -> Bottom (Row 1 top, Row 2 below it) -> column
+  - Fills: Right -> Left (North's R->L is Screen L->R) -> row
+*/
+.discard-pile.north .discards-container {
+  flex-direction: column;
+  /* Stacks rows downwards */
+  align-items: center;
+}
+
+.discard-pile.north .discard-row {
+  flex-direction: row;
+  /* Fills L->R (North Perspective R->L? Wait. North's Right is West. Screen West is Left. So Screen L->R.) */
+}
+
+/* 
+  EAST (Right Player)
+  - Stacking: Right -> Left (Row 1 right, Row 2 left of it) -> row-reverse
+  - Fills: Top -> Bottom -> column
+*/
+.discard-pile.east .discards-container {
+  flex-direction: row-reverse;
+  /* Stacks columns leftwards */
+  align-items: center;
+}
+
+.discard-pile.east .discard-row {
+  flex-direction: column;
+  /* Fills T->B */
+}
+
+/* 
+  WEST (Left Player)
+  - Stacking: Left -> Right (Row 1 left, Row 2 right of it) -> row
+  - Fills: Bottom -> Top -> column-reverse
+*/
+.discard-pile.west .discards-container {
+  flex-direction: row;
+  /* Stacks columns rightwards */
+  align-items: center;
+}
+
+.discard-pile.west .discard-row {
+  flex-direction: column-reverse;
+  /* Fills B->T */
+}

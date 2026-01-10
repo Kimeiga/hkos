@@ -1,0 +1,127 @@
+.game-state-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    /* Fixed header height */
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 16px;
+    box-sizing: border-box;
+    z-index: 100;
+    border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* Left Widget: Global State */
+.global-state {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.round-indicator {
+    width: 40px;
+    height: 40px;
+    background: radial-gradient(circle, #333, #111);
+    border: 1px solid #ffd700;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+    color: #ffd700;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+}
+
+.deck-count {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-family: monospace;
+    font-size: 14px;
+    color: #ddd;
+}
+
+.deck-icon {
+    width: 12px;
+    height: 16px;
+    background: #ccc;
+    border-radius: 2px;
+}
+
+/* Right Widget: Player Status Strip */
+.player-strip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-player {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    border: 1px solid transparent;
+    transition: all 0.3s ease;
+}
+
+/* Dealer Marker */
+.status-player.is-dealer {
+    border-color: #ff4d4d;
+    background: rgba(255, 77, 77, 0.1);
+}
+
+.dealer-icon {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #ff4d4d;
+    color: white;
+    font-size: 8px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+/* Active Turn Highlight */
+.status-player.active {
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+    border-color: #ffd700;
+    background: rgba(255, 215, 0, 0.15);
+    transform: scale(1.05);
+    z-index: 10;
+}
+
+.status-wind {
+    font-size: 18px;
+    font-weight: bold;
+    color: #aaa;
+}
+
+.status-player.active .status-wind {
+    color: #ffd700;
+}
+
+.status-score {
+    font-size: 10px;
+    color: #888;
+    font-family: monospace;
+}
+
+.status-player.active .status-score {
+    color: #fff;
+}

@@ -1,0 +1,152 @@
+.center-compass {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 160px;
+    /* More compact */
+    height: 160px;
+    /* background: rgba(0, 0, 0, 0.4); Removed for cleaner look, sectors will be distinct?
+     Actually, user image suggests a unified shape divided. Keep bg but darker/subtler. */
+    background: radial-gradient(circle, #222 40%, rgba(20, 20, 20, 0.8) 100%);
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 25px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.compass-center {
+    width: 50px;
+    height: 50px;
+    background: #111;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #ffd700;
+    border: 1px solid #444;
+    z-index: 20;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+}
+
+.compass-center .round-info {
+    display: flex;
+    gap: 2px;
+    font-size: 10px;
+    color: #888;
+    margin-bottom: 2px;
+}
+
+.compass-center .round-wind {
+    color: #aaa;
+}
+
+.compass-center .hand-num {
+    color: #aaa;
+}
+
+.compass-center .tiles-remaining {
+    font-family: monospace;
+    font-size: 18px;
+    font-weight: bold;
+    color: #ffd700;
+    line-height: 1;
+}
+
+.compass-sector {
+    position: absolute;
+    /* Use triangular clipping? Or just small boxes closer to center.
+     User said "Characters closer to Center". */
+    width: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+/* Character Box - The part that lights up */
+.compass-character-box {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+}
+
+/* Labels */
+.compass-label {
+    font-size: 20px;
+    font-weight: bold;
+    color: #666;
+    /* Dim by default */
+}
+
+/* Active State */
+.compass-sector.active .compass-character-box {
+    background: rgba(255, 215, 0, 0.15);
+    border: 1px solid rgba(255, 215, 0, 0.6);
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+}
+
+.compass-sector.active .compass-label {
+    color: #ffd700;
+    /* Bright gold */
+    text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+}
+
+.compass-score {
+    font-size: 10px;
+    color: #888;
+    font-family: 'Roboto Mono', monospace;
+    margin-top: 2px;
+}
+
+/* 
+  Positioning & Rotation 
+  The compass itself is fixed. The text inside needs to be rotated 
+  so it faces the center (or the player reading it).
+  
+  User spec:
+  Right Player: Rotate -90deg (Counter-clockwise)
+  Top Player: Rotate 180deg (Upside down)
+  Left Player: Rotate 90deg (Clockwise)
+  Bottom Player: 0deg
+*/
+
+/* Bottom (South/User) */
+.compass-sector.bottom {
+    bottom: 25px;
+    /* Closer to center */
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* Right (East) */
+.compass-sector.right {
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%) rotate(-90deg);
+}
+
+/* Top (North) */
+.compass-sector.top {
+    top: 25px;
+    left: 50%;
+    transform: translateX(-50%) rotate(180deg);
+}
+
+/* Left (West) */
+.compass-sector.left {
+    left: 5px;
+    top: 50%;
+    transform: translateY(-50%) rotate(90deg);
+}

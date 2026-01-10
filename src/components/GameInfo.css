@@ -1,0 +1,136 @@
+.game-info {
+  position: fixed;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: linear-gradient(145deg, #2c3e50, #1a252f);
+  border: 1px solid #4a6785;
+  border-radius: 8px;
+  padding: 10px;
+  min-width: 120px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  color: #e0e0e0;
+  font-size: 11px;
+}
+
+.round-info {
+  text-align: center;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.round-wind {
+  font-size: 14px;
+  font-weight: bold;
+  color: #ffd700;
+}
+
+.hand-number {
+  font-size: 10px;
+  color: #888;
+  margin-top: 2px;
+}
+
+.wall-count {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+}
+
+.wall-icon {
+  font-size: 16px;
+}
+
+.wall-number {
+  font-size: 18px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.wall-label {
+  font-size: 9px;
+  color: #888;
+}
+
+.turn-info {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.turn-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #888;
+  margin-bottom: 2px;
+}
+
+.turn-player {
+  font-size: 11px;
+  font-weight: bold;
+  padding: 4px 8px;
+  background: rgba(255, 215, 0, 0.15);
+  border-radius: 3px;
+  color: #ffd700;
+}
+
+.turn-player.south {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+}
+
+.scores {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 8px;
+}
+
+.scores-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #888;
+  margin-bottom: 4px;
+  text-align: center;
+}
+
+.score-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+  font-size: 11px;
+}
+
+.score-item.human {
+  color: #4caf50;
+  font-weight: bold;
+}
+
+.score-wind {
+  color: #888;
+}
+
+.score-value {
+  font-weight: bold;
+}
+
+.game-over {
+  margin-top: 10px;
+  padding: 8px;
+  background: rgba(244, 67, 54, 0.2);
+  border-radius: 6px;
+  text-align: center;
+}
+
+.game-over-text {
+  font-size: 14px;
+  font-weight: bold;
+  color: #f44336;
+}
+

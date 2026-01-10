@@ -1,0 +1,150 @@
+.player-hand {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  /* Clean styling */
+}
+
+.player-hand.current-turn {
+  background: rgba(255, 215, 0, 0.15);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
+/* Bottom player (human) - horizontal row */
+.player-hand.bottom {
+  flex-direction: column;
+  width: auto;
+  max-width: 100%;
+}
+
+.player-hand.bottom .hand-tiles {
+  flex-direction: row;
+  gap: 2px;
+}
+
+/* Top player - horizontal row */
+.player-hand.top {
+  flex-direction: column;
+}
+
+.player-hand.top .hand-tiles {
+  flex-direction: row;
+  gap: 2px;
+}
+
+/* Left player - vertical column */
+.player-hand.left {
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Right player - vertical column */
+.player-hand.right {
+  flex-direction: column;
+  justify-content: center;
+}
+
+.player-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.seat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.turn-indicator {
+  color: #ffd700;
+  font-size: 10px;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Hand tiles - default horizontal */
+.hand-tiles {
+  display: flex;
+  align-items: flex-end;
+  /* Align bottom to keep tiles grounded */
+  gap: 0;
+  /* Remove gap as requested */
+  transition: all 0.3s ease;
+  flex-wrap: wrap;
+  /* Allow wrapping */
+  justify-content: center;
+  /* Center the wrapped rows */
+  max-width: 100vw;
+  /* Ensure it doesn't overflow screen width */
+}
+
+/* Specific styling for vertical hands */
+.hand-tiles-vertical {
+  flex-direction: column;
+  flex-wrap: wrap;
+  /* This might behave oddly with column direction, but typically vertical hands don't wrap 'sideways' in a stack manner easily without fixed height.
+  For side players, we typically want a single column. wrapping might split it into two columns.
+  Let's keep side players simpler for now or see if they need wrapping.
+  User specifically mentioned North/South needs wrapping.*/
+  align-items: center;
+}
+
+
+/* Melds */
+.melds {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.melds-vertical {
+  flex-direction: column;
+}
+
+.meld {
+  display: flex;
+  flex-direction: row;
+  gap: 1px;
+  padding: 2px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+.meld-vertical {
+  flex-direction: column;
+}
+
+/* Flowers */
+.flowers {
+  display: flex;
+  flex-direction: row;
+  gap: 2px;
+  margin-bottom: 4px;
+  padding: 2px;
+  background: rgba(255, 192, 203, 0.2);
+  border-radius: 3px;
+}
+
+.flowers-vertical {
+  flex-direction: column;
+}
