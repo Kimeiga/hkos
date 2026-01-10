@@ -82,21 +82,29 @@
 .discard-pile-vertical {
   flex-direction: column;
   max-width: none;
-  max-height: 300px;
+  max-height: 220px;
+  /* Limit height to prevent overlap */
+  flex-wrap: wrap-reverse;
+  /* Stack columns */
 }
 
 /* Position-specific adjustments */
-.player-hand.bottom .discard-pile {
-  justify-content: center;
-}
-
+/* Bottom/Top: Horizontal Discard Layout */
+.player-hand.bottom .discard-pile,
 .player-hand.top .discard-pile {
+  width: 330px;
+  /* Force width to allow multiple tiles per row (~10 tiles small) */
   justify-content: center;
+  flex-direction: row;
 }
 
+/* Side players */
 .player-hand.left .discard-pile,
 .player-hand.right .discard-pile {
   align-items: center;
+  height: 260px;
+  /* Ensure height for column flow */
+  /* Width will auto-fit the columns */
 }
 
 /* Small tiles in discard piles for all players */
