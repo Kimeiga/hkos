@@ -6,11 +6,13 @@ import { TeacherPanel } from './TeacherPanel';
 import { GameStateBar } from './GameStateBar';
 import './GameTable.css';
 
+// Position mapping: Human (East) at bottom, playing counter-clockwise
+// East (bottom) -> South (left) -> West (top) -> North (right)
 const positionMap: Record<Wind, 'bottom' | 'left' | 'top' | 'right'> = {
-  south: 'bottom',
-  east: 'right',
-  north: 'top',
-  west: 'left',
+  east: 'bottom',   // Human/Dealer
+  south: 'left',    // Next player (counter-clockwise)
+  west: 'top',      // Across from human
+  north: 'right',   // Previous player
 };
 
 export const GameTable: React.FC = () => {
