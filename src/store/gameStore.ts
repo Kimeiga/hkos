@@ -417,14 +417,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const state = get();
     const humanPlayer = state.players.south;
 
+    // Only show suggestion when it's human's turn in discard phase
+    if (state.currentTurn !== 'south' || state.turnPhase !== 'discard') {
+      set({ teacherSuggestion: null });
+      return;
+    }
+
     if (humanPlayer.hand.length === 0 || state.phase !== 'playing') {
       set({ teacherSuggestion: null });
       return;
     }
 
     try {
-      // Only suggest when human has 14 tiles (needs to discard)
-      if (humanPlayer.hand.length === 14) {
+      // Suggest when human has 14-tile equivalent (hand + drawn tile)
+      // With melds: 14 tiles, 11 tiles (1 meld), 8 tiles (2 melds), etc.
+      // All these satisfy hand.length % 3 === 2
+      if (humanPlayer.hand.length % 3 === 2) {
         const suggestion = suggestDiscard(
           humanPlayer.hand,
           humanPlayer.melds,

@@ -19,6 +19,10 @@
 
   grid-template-rows: auto 1fr auto;
   grid-template-columns: auto 1fr auto;
+
+  /* Push content down below fixed GameStateBar (44px + 4px buffer = 48px) */
+  padding-top: 48px;
+  box-sizing: border-box;
 }
 
 /* Felt texture overlay */

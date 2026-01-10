@@ -88,13 +88,10 @@ export const GameTable: React.FC = () => {
         dealerSeat={dealerSeat}
       />
 
-      <DiscardRiver discards={allDiscards} />
+      {/* DiscardRiver Removed - Integrated into PlayerHand */}
 
       <div className="table-center">
-        {/* Center is now largely handled by DiscardRiver's specific positioning,
-             but we keep this container if we need other overlays later.
-             Currently empty/transparent.
-         */}
+        {/* Center is now truly empty, used for effects or dead wall if needed */}
       </div>
 
       {/* Player hands in their positions */}
@@ -111,31 +108,16 @@ export const GameTable: React.FC = () => {
           selectedTile={wind === 'south' ? selectedTile : null}
           recommendedTile={wind === 'south' ? teacherSuggestion?.recommendedTile : null}
           onTileClick={wind === 'south' ? handleTileClick : undefined}
+          onSort={
+            wind === 'south' && phase === 'playing' && currentTurn === 'south' && turnPhase === 'discard'
+              ? sortHand
+              : undefined
+          }
           canDiscard={wind === 'south' && currentTurn === 'south' && turnPhase === 'discard'}
         />
       ))}
 
-      {phase === 'playing' && currentTurn === 'south' && turnPhase === 'discard' && (
-        <button
-          className="sort-button"
-          onClick={sortHand}
-          style={{
-            position: 'absolute',
-            bottom: '150px', /* Lowered closer to hand/melds */
-            left: '20px',
-            zIndex: 60,
-            padding: '8px 16px',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            background: 'rgba(0,0,0,0.6)',
-            color: '#fff',
-            border: '1px solid rgba(255,255,255,0.3)',
-            borderRadius: '4px'
-          }}
-        >
-          Sort Hand
-        </button>
-      )}
+      {/* Floating Sort Button Removed - Integrated into PlayerHand */}
 
       <TeacherPanel
         suggestion={teacherSuggestion}
@@ -143,13 +125,7 @@ export const GameTable: React.FC = () => {
         onToggle={toggleTeacher}
       />
 
-      {/* Instructions */}
-      {phase === 'playing' && currentTurn === 'south' && (
-        <div className="instructions">
-          {turnPhase === 'draw' && 'Drawing...'}
-          {turnPhase === 'discard' && 'Click a tile to select, click again to discard'}
-        </div>
-      )}
+      {/* Instructions Removed */}
 
       {/* Action Panel (Pong/Kong/Chow/Win) */}
       {showTeacher && teacherSuggestion && currentTurn === 'south' && turnPhase === 'discard' && (

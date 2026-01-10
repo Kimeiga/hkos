@@ -12,48 +12,172 @@
   box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
 }
 
-/* Main Container: Controls relationship between Hand and Exposed Zone */
+/* Main Container: Controls relationship between Hand, Exposed, and Discards */
 .player-hand {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 20;
-  gap: 12px;
-  /* Spacing between Hand and Exposed Zone */
+  gap: 8px;
+  margin: 0;
+  padding: 0;
 }
 
-/* South (Bottom): Exposed (Top) / Hand (Bottom) -> Column */
+/* South (Bottom)
+   Order HTML: [Discards, Exposed, Hand]
+   Direction: Column
+   Result: Discards (Top), Exposed (Mid), Hand (Bottom)
+*/
 .player-hand.bottom {
   flex-direction: column;
 }
 
-/* North (Top): Hand (Top) / Exposed (Bottom) -> Column-Reverse */
+/* North (Top)
+   Order HTML: [Discards, Exposed, Hand]
+   Direction: Column-Reverse
+   Result: Hand (Top), Exposed (Mid), Discards (Bottom)
+*/
 .player-hand.top {
   flex-direction: column-reverse;
-  /* HTML: Exposed, Hand. Reverse: Hand (Top), Exposed (Bottom) */
 }
 
-/* West (Left): Hand (Left Edge) / Exposed (Right/Center) -> Row-Reverse */
+/* West (Left)
+   Order HTML: [Discards, Exposed, Hand]
+   Direction: Row-Reverse
+   Result: Hand (Left), Exposed (Mid), Discards (Right)
+*/
 .player-hand.left {
   flex-direction: row-reverse;
-  /* HTML: Exposed, Hand. Reverse: Hand (Left), Exposed (Right) */
   height: 100%;
+  justify-content: flex-end;
+  /* Push to Left Edge */
 }
 
-/* East (Right): Hand (Right Edge) / Exposed (Left/Center) -> Row */
+/* East (Right)
+   Order HTML: [Discards, Exposed, Hand]
+   Direction: Row
+   Result: Discards (Left/Center), Exposed (Mid), Hand (Right)
+*/
 .player-hand.right {
   flex-direction: row;
-  /* HTML: Exposed, Hand. Row: Exposed (Left! No wait), Hand (Right).
-     Row: Start->End. Start is Left.
-     Item 1 (Exposed). Item 2 (Hand).
-     Result: Exposed | Hand.
-     Hand is on Right Edge? Yes, if container aligns to Right or Justify End.
-     But we want Hand on Right Edge.
-     So Order: Exposed (Left), Hand (Right).
-     This matches standard Row flow.
-  */
   height: 100%;
+  justify-content: flex-end;
+  /* Push to Right Edge */
+}
+
+/* --- Discard Zone --- */
+.discard-zone {
+  display: flex;
+  gap: 0;
+  /* Fixed sizes to ensure 8-tile rows? 
+     For South/North: Width = 8 * 36px = 288px.
+     For Sides: Height/Width? 
+     Side Discards (90deg) have width 48px, height 36px.
+     If we stack them in columns...
+  */
+}
+
+/* Bottom/Top: Horizontal Discard Layout */
+.player-hand.bottom .discard-zone,
+.player-hand.top .discard-zone {
+  width: 288px;
+  /* 8 * 36px */
+  flex-direction: row;
+  flex-wrap: wrap-reverse;
+  /* Fill from bottom up? 
+      South: Discards are TOP of the player area. "Row 1 closest to player".
+      Player is BELOW. So Row 1 should be at BOTTOM of discard zone.
+      Standard wrap starts at Top. wrap-reverse starts at Bottom.
+      So wrap-reverse keeps Row 1 (Index 0-7) at the bottom (closest to Hand/Exposed).
+      PERFECT.
+  */
+  justify-content: flex-start;
+  /* Fill from Left */
+}
+
+/* Top: "Row 1 closest to top".
+   Top Player is ABOVE. Discards are BOTTOM of player area.
+   Wait. "Row 1 closest to top edge".
+   If Top Player is Top, Discards are towards Center (Bottom).
+   So Row 1 should be at TOP of discard zone (closest to Hand).
+   Standard wrap starts at Top.
+   So .player-hand.top .discard-zone should be flex-wrap: wrap?
+   
+   Wait, DiscardRiver logic was:
+   North: flex-wrap: wrap.
+   South: flex-wrap: wrap-reverse.
+   
+   Let's check North logic relative to Zone:
+   North Zone: Hand (Top), Discards (Bottom).
+   Discards Zone: 
+     Row 1 (Indices 0-7).
+     Row 2 (Indices 8-15).
+   We want Row 1 CLOSEST to Hand.
+   Hand is ABOVE Discard Zone. So Row 1 should be at TOP of Discard Zone.
+   Standard 'wrap' puts first items at Top.
+   So North uses 'wrap'.
+   
+   South:
+   Hand (Bottom), Discards (Top).
+   We want Row 1 CLOSEST to Hand.
+   Hand is BELOW Discard Zone. So Row 1 should be at BOTTOM of Discard Zone.
+   'wrap-reverse' puts first items at Bottom.
+   So South uses 'wrap-reverse'.
+*/
+.player-hand.top .discard-zone {
+  flex-wrap: wrap;
+  /* Row 1 at Top (Near Hand) */
+  flex-direction: row-reverse;
+  /* Fill Right-to-Left? No, North fills R->L. */
+}
+
+
+/* Side Players: Vertical Discard Layout */
+/* Tile Dimensions: 48W x 36H (Landscape) */
+.player-hand.left .discard-zone,
+.player-hand.right .discard-zone {
+  height: 288px;
+  /* 8 * 36px height? Or 6 * 48? 
+     "Right Bot: Fills Top-to-Bottom... Column 1 closest to right edge."
+     Standard Column fill.
+  */
+  display: flex;
+}
+
+/* Left (West): Hand (Left), Discards (Right).
+   "Fills Bottom-to-Top... Column 1 closest to left edge (Player)".
+   Discards are to the Right of Hand.
+   Column 1 (0-7) should be Closest to Hand (LEFT side of Discard Zone).
+   Column 2 (8-15) stacks to the Right.
+   Standard 'wrap' for column fills Left->Right.
+   So Column 1 is Left.
+   
+   "Fills Bottom-to-Top".
+   flex-direction: column-reverse.
+*/
+.player-hand.left .discard-zone {
+  flex-direction: column-reverse;
+  flex-wrap: wrap;
+}
+
+/* Right (East): Discards (Left), Hand (Right).
+   "Fills Top-to-Bottom... Column 1 closest to right edge (Player)".
+   Discards are Left of Hand.
+   Column 1 (0-7) should be Closest to Hand (RIGHT side of Discard Zone).
+   Column 2 (8-15) stacks to the Left.
+   Standard 'wrap' for column fills Left->Right.
+   'wrap-reverse' fills Right->Left.
+   So Column 1 is Right.
+   
+   "Fills Top-to-Bottom".
+   flex-direction: column.
+*/
+.player-hand.right .discard-zone {
+  flex-direction: column;
+  flex-wrap: wrap-reverse;
+  align-content: flex-end;
+  /* Align to the Right edge of the zone */
 }
 
 
