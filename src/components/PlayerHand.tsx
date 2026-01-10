@@ -41,26 +41,8 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
 
   return (
     <div className={`player-hand ${position} ${isCurrentTurn ? 'current-turn' : ''}`}>
-      {/* Exposed melds */}
-      <div className={`melds ${isVertical ? 'melds-vertical' : ''}`}>
-        {melds.map((meld, i) => (
-          <div key={i} className={`meld ${isVertical ? 'meld-vertical' : ''}`}>
-            {meld.tiles.map((tile) => (
-              <Tile
-                key={tile.instanceId}
-                tile={tile}
-                isConcealed={meld.isConcealed}
-                rotation={rotation}
-              />
-            ))}
-          </div>
-        ))}
-      </div>
-      {/* Hand Container: Stack Flowers and Tiles Vertically for Bottom/Top, Horizontally for Sides? 
-         User said: "put it in front of you... in front of the hand". 
-         For South (Bottom), "in front" usually means "closer to center" (Above).
-      */}
-      <div className={`hand-container ${position}`}>
+      {/* Exposed Zone: Melds + Flowers */}
+      <div className="exposed-zone">
         {/* Flowers */}
         {flowers.length > 0 && (
           <div className={`flowers ${isVertical ? 'flowers-vertical' : ''}`}>
@@ -70,38 +52,58 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
           </div>
         )}
 
-        {/* Hand tiles */}
-        <div className={`hand-tiles ${isVertical ? 'hand-tiles-vertical' : ''}`} style={{ minWidth: isHuman ? 'auto' : 'auto' }}>
-          <AnimatePresence mode="popLayout">
-            {tiles.map((tile, index) => {
-              // Logic to identify the just-drawn tile for the "Float Down" animation.
-              const isLastTile = index === tiles.length - 1;
-              const isJustDrawn = isHuman && isLastTile && tiles.length % 3 === 2; // Rough heuristic: typical hands are 13, draw is 14. 14%3=2. 
-              // Better: pass `isJustDrawn` in tile object or use store state. 
-              // For now, re-using existing logic or simplfying.
+        {/* Melds */}
+        {melds.length > 0 && (
+          <div className={`melds ${isVertical ? 'melds-vertical' : ''}`}>
+            {melds.map((meld, i) => (
+              <div key={i} className={`meld ${isVertical ? 'meld-vertical' : ''}`}>
+                {meld.tiles.map((tile) => (
+                  <Tile
+                    key={tile.instanceId}
+                    tile={tile}
+                    isConcealed={meld.isConcealed}
+                    rotation={rotation}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
-              const customAnim = isJustDrawn ? {
-                initial: { opacity: 0, y: -40 },
-                animate: { opacity: 1, y: 0 },
-                transition: { duration: 0.4, ease: "easeOut" }
-              } : undefined;
+      {/* Hand Container Removed - Direct Hand Tiles */}
 
-              return (
-                <Tile
-                  key={tile.instanceId}
-                  tile={tile}
-                  isConcealed={!showTiles}
-                  isSelected={selectedTile?.instanceId === tile.instanceId}
-                  isRecommended={recommendedTile?.instanceId === tile.instanceId}
-                  onClick={isHuman && canDiscard ? () => onTileClick?.(tile) : undefined}
-                  enableLayoutAnimation={true} // Enable for everyone to support Discard Layout Animations (Hand -> Pile)
-                  rotation={rotation}
-                  animationProps={customAnim}
-                />
-              )
-            })}
-          </AnimatePresence>
-        </div>
+      {/* Hand tiles */}
+      <div className={`hand-tiles ${isVertical ? 'hand-tiles-vertical' : ''}`} style={{ minWidth: isHuman ? 'auto' : 'auto' }}>
+        <AnimatePresence mode="popLayout">
+          {tiles.map((tile, index) => {
+            // Logic to identify the just-drawn tile for the "Float Down" animation.
+            const isLastTile = index === tiles.length - 1;
+            const isJustDrawn = isHuman && isLastTile && tiles.length % 3 === 2; // Rough heuristic: typical hands are 13, draw is 14. 14%3=2. 
+            // Better: pass `isJustDrawn` in tile object or use store state. 
+            // For now, re-using existing logic or simplfying.
+
+            const customAnim = isJustDrawn ? {
+              initial: { opacity: 0, y: -40 },
+              animate: { opacity: 1, y: 0 },
+              transition: { duration: 0.4, ease: "easeOut" }
+            } : undefined;
+
+            return (
+              <Tile
+                key={tile.instanceId}
+                tile={tile}
+                isConcealed={!showTiles}
+                isSelected={selectedTile?.instanceId === tile.instanceId}
+                isRecommended={recommendedTile?.instanceId === tile.instanceId}
+                onClick={isHuman && canDiscard ? () => onTileClick?.(tile) : undefined}
+                enableLayoutAnimation={true} // Enable for everyone to support Discard Layout Animations (Hand -> Pile)
+                rotation={rotation}
+                animationProps={customAnim}
+              />
+            )
+          })}
+        </AnimatePresence>
       </div>
     </div>
   );

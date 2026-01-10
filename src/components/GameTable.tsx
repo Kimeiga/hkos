@@ -123,7 +123,25 @@ export const GameTable: React.FC = () => {
       ))}
 
       {phase === 'playing' && currentTurn === 'south' && turnPhase === 'discard' && (
-        <button className="sort-button" onClick={sortHand}>Sort Hand</button>
+        <button
+          className="sort-button"
+          onClick={sortHand}
+          style={{
+            position: 'absolute',
+            bottom: '220px', /* Lifted well above the hand area */
+            left: '20px',
+            zIndex: 60,
+            padding: '8px 16px',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            background: 'rgba(0,0,0,0.6)',
+            color: '#fff',
+            border: '1px solid rgba(255,255,255,0.3)',
+            borderRadius: '4px'
+          }}
+        >
+          Sort Hand
+        </button>
       )}
 
       <TeacherPanel

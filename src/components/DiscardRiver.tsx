@@ -23,7 +23,7 @@ export const DiscardRiver: React.FC<DiscardRiverProps> = ({ discards }) => {
                 {/* East (Right) */}
                 <div className="river-section east">
                     {discards.east.map(tile => (
-                        <Tile key={tile.instanceId} tile={tile} rotation={90} /> // Landscape (Top->Right)
+                        <Tile key={tile.instanceId} tile={tile} rotation={270} /> // Landscape (Top->Left)
                     ))}
                 </div>
 
@@ -37,7 +37,7 @@ export const DiscardRiver: React.FC<DiscardRiverProps> = ({ discards }) => {
                 {/* West (Left) */}
                 <div className="river-section west">
                     {discards.west.map(tile => (
-                        <Tile key={tile.instanceId} tile={tile} rotation={270} /> // Landscape (Top->Left)
+                        <Tile key={tile.instanceId} tile={tile} rotation={90} /> // Landscape (Top->Right)
                     ))}
                 </div>
 

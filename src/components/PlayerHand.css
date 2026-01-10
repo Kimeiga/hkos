@@ -12,38 +12,75 @@
   box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
 }
 
-/* Bottom player (human) - horizontal row */
+/* Main Container: Controls relationship between Hand and Exposed Zone */
+.player-hand {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  gap: 12px;
+  /* Spacing between Hand and Exposed Zone */
+}
+
+/* South (Bottom): Exposed (Top) / Hand (Bottom) -> Column */
 .player-hand.bottom {
   flex-direction: column;
-  width: auto;
-  max-width: 100%;
 }
 
-.player-hand.bottom .hand-tiles {
-  flex-direction: row;
-  gap: 2px;
-}
-
-/* Top player - horizontal row */
+/* North (Top): Hand (Top) / Exposed (Bottom) -> Column-Reverse */
 .player-hand.top {
-  flex-direction: column;
+  flex-direction: column-reverse;
+  /* HTML: Exposed, Hand. Reverse: Hand (Top), Exposed (Bottom) */
 }
 
-.player-hand.top .hand-tiles {
-  flex-direction: row;
-  gap: 2px;
-}
-
-/* Left player - vertical column */
+/* West (Left): Hand (Left Edge) / Exposed (Right/Center) -> Row-Reverse */
 .player-hand.left {
-  flex-direction: column;
+  flex-direction: row-reverse;
+  /* HTML: Exposed, Hand. Reverse: Hand (Left), Exposed (Right) */
+  height: 100%;
+}
+
+/* East (Right): Hand (Right Edge) / Exposed (Left/Center) -> Row */
+.player-hand.right {
+  flex-direction: row;
+  /* HTML: Exposed, Hand. Row: Exposed (Left! No wait), Hand (Right).
+     Row: Start->End. Start is Left.
+     Item 1 (Exposed). Item 2 (Hand).
+     Result: Exposed | Hand.
+     Hand is on Right Edge? Yes, if container aligns to Right or Justify End.
+     But we want Hand on Right Edge.
+     So Order: Exposed (Left), Hand (Right).
+     This matches standard Row flow.
+  */
+  height: 100%;
+}
+
+
+/* --- Exposed Zone (Melds + Flowers) --- */
+.exposed-zone {
+  display: flex;
+  gap: 8px;
+  align-items: center;
   justify-content: center;
 }
 
-/* Right player - vertical column */
-.player-hand.right {
+/* Vertical Players: Exposed Zone is a COLUMN of items */
+.player-hand.left .exposed-zone,
+.player-hand.right .exposed-zone {
   flex-direction: column;
+  flex-wrap: wrap;
+  max-height: 80vh;
+  /* Prevent overflow */
   justify-content: center;
+}
+
+/* Horizontal Players: Exposed Zone is a ROW of items */
+.player-hand.bottom .exposed-zone,
+.player-hand.top .exposed-zone {
+  flex-direction: row;
+  flex-wrap: wrap;
+  max-width: 90vw;
 }
 
 .player-info {
