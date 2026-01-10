@@ -14,16 +14,25 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
   isVisible,
   onToggle,
 }) => {
+  // Collapsed state: just a small clickable hat emoji
+  if (!isVisible) {
+    return (
+      <button className="teacher-collapsed" onClick={onToggle} title="Open Teacher">
+        🎓
+      </button>
+    );
+  }
+
   return (
-    <div className={`teacher-panel ${isVisible ? 'visible' : 'hidden'}`}>
+    <div className="teacher-panel visible">
       <div className="teacher-header">
         <h3>🎓 Teacher</h3>
         <button className="toggle-btn" onClick={onToggle}>
-          {isVisible ? '−' : '+'}
+          −
         </button>
       </div>
-      
-      {isVisible && suggestion && (
+
+      {suggestion && (
         <div className="teacher-content">
           <div className="recommendation">
             <div className="rec-label">Recommended Discard:</div>
@@ -68,7 +77,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
         </div>
       )}
       
-      {isVisible && !suggestion && (
+      {!suggestion && (
         <div className="teacher-content">
           <div className="no-suggestion">
             Waiting for your turn to discard...

@@ -1,3 +1,31 @@
+/* Collapsed state - just a floating emoji button */
+.teacher-collapsed {
+  position: fixed;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: linear-gradient(145deg, #2c3e50, #1a252f);
+  border: 1px solid #4a6785;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  z-index: 100;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.teacher-collapsed:hover {
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* Expanded state */
 .teacher-panel {
   position: fixed;
   right: 10px;
@@ -13,10 +41,6 @@
   z-index: 100;
   transition: all 0.3s ease;
   font-size: 11px;
-}
-
-.teacher-panel.hidden {
-  min-width: 80px;
 }
 
 .teacher-header {
