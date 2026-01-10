@@ -309,3 +309,44 @@
 .flowers-vertical {
   flex-direction: column;
 }
+
+/* --- SMALL TILES FOR AI PLAYERS (User Request) --- */
+/* Target only the Hand Tiles for Top/Left/Right players */
+/* Base Small Size: 28px x 36px (approx 75% of 36x48) */
+
+/* Top (North) - 180deg Portrait */
+.player-hand.top .hand-tiles .tile {
+  width: 28px !important;
+  height: 36px !important;
+  padding: 1px;
+}
+
+/* Left (West) - 90deg Landscape */
+.player-hand.left .hand-tiles .tile {
+  width: 36px !important;
+  height: 28px !important;
+  padding: 1px;
+}
+
+/* Right (East) - 270deg Landscape */
+.player-hand.right .hand-tiles .tile {
+  width: 36px !important;
+  height: 28px !important;
+  padding: 1px;
+}
+
+/* Ensure inner images/backs scale correctly */
+.player-hand.top .hand-tiles .tile .tile-back,
+.player-hand.left .hand-tiles .tile .tile-back,
+.player-hand.right .hand-tiles .tile .tile-back {
+  background-size: cover;
+  /* Ensure gradient covers new size */
+}
+
+/* Adjust margins to pack them tighter if needed */
+.player-hand.top .hand-tiles,
+.player-hand.left .hand-tiles,
+.player-hand.right .hand-tiles {
+  gap: 1px;
+  /* Tighter gap for small tiles */
+}

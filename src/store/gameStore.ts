@@ -51,9 +51,12 @@ interface GameStore extends GameState {
   checkClaims: (tile: Tile, fromPlayer: Wind) => Promise<boolean>; // Returns true if claimed
 }
 
+// Human is East (dealer) - the most common setup in Mahjong trainers
+const HUMAN_SEAT: Wind = 'east';
+
 const createInitialPlayers = (): Record<Wind, Player> => ({
-  east: { seat: 'east', hand: [], melds: [], flowers: [], discards: [], score: INITIAL_SCORE, isHuman: false },
-  south: { seat: 'south', hand: [], melds: [], flowers: [], discards: [], score: INITIAL_SCORE, isHuman: true },
+  east: { seat: 'east', hand: [], melds: [], flowers: [], discards: [], score: INITIAL_SCORE, isHuman: true },
+  south: { seat: 'south', hand: [], melds: [], flowers: [], discards: [], score: INITIAL_SCORE, isHuman: false },
   west: { seat: 'west', hand: [], melds: [], flowers: [], discards: [], score: INITIAL_SCORE, isHuman: false },
   north: { seat: 'north', hand: [], melds: [], flowers: [], discards: [], score: INITIAL_SCORE, isHuman: false },
 });
@@ -158,11 +161,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
     console.log('[Game] Dealt complete. Current Turn:', 'east', 'Phase:', 'east' === state.dealerSeat ? 'discard' : 'draw');
     get().updateTeacherSuggestion();
 
-    // If starting player (Dealer) is AI, trigger their turn
-    const currentPlayer = players[state.dealerSeat];
-    if (!currentPlayer.isHuman) {
+    // If starting player (Dealer/East) is AI, trigger their turn
+    // Otherwise, human player is ready to discard (they already have 14 tiles as dealer)
+    const dealerPlayer = players['east'];
+    if (!dealerPlayer.isHuman) {
       console.log('[Game] Triggering AI Dealer turn...');
       setTimeout(() => get().playAITurn(), 800);
+    } else {
+      console.log('[Game] Human is dealer - ready to discard.');
     }
   },
 
@@ -253,13 +259,29 @@ export const useGameStore = create<GameStore>((set, get) => ({
       selectedTile: null,
     });
 
+    // Capture current discard for comparison
+    const discardInstanceId = tile.instanceId;
+
     // Animate discard, then check for claims
     setTimeout(async () => {
       set({ animatingTile: null, animationTarget: null });
 
+      // Guard: Only proceed if this is still the current discard we're processing
+      const currentState = get();
+      if (currentState.lastDiscard?.instanceId !== discardInstanceId) {
+        console.log('[Game] Stale discard check, skipping nextTurn.');
+        return;
+      }
+
       console.log(`[Game] Checking claims for discard by ${player}...`);
       const claimed = await get().checkClaims(tile, player);
       if (!claimed) {
+        // Double-check we're still on the same discard
+        const finalState = get();
+        if (finalState.lastDiscard?.instanceId !== discardInstanceId) {
+          console.log('[Game] Stale after claim check, skipping nextTurn.');
+          return;
+        }
         console.log('[Game] No claims, proceeding to next turn.');
         get().nextTurn();
       } else {
@@ -415,10 +437,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   updateTeacherSuggestion: () => {
     const state = get();
-    const humanPlayer = state.players.south;
+    const humanPlayer = state.players[HUMAN_SEAT];
 
     // Only show suggestion when it's human's turn in discard phase
-    if (state.currentTurn !== 'south' || state.turnPhase !== 'discard') {
+    if (state.currentTurn !== HUMAN_SEAT || state.turnPhase !== 'discard') {
       set({ teacherSuggestion: null });
       return;
     }
@@ -436,7 +458,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const suggestion = suggestDiscard(
           humanPlayer.hand,
           humanPlayer.melds,
-          'south',
+          HUMAN_SEAT,
           state.roundWind
         );
         set({ teacherSuggestion: suggestion });

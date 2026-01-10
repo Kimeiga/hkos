@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { useGameStore } from '../store';
 import { Wind } from '../types/tile';
 import { PlayerHand } from './PlayerHand';
-import { DiscardRiver } from './DiscardRiver';
 import { TeacherPanel } from './TeacherPanel';
 import { GameStateBar } from './GameStateBar';
 import './GameTable.css';
@@ -36,14 +35,6 @@ export const GameTable: React.FC = () => {
     dealerSeat,
   } = useGameStore();
 
-  // Collect all discards for the DiscardRiver
-  const allDiscards = {
-    south: players.south.discards,
-    east: players.east.discards,
-    north: players.north.discards,
-    west: players.west.discards,
-  };
-
   // Start game on mount
   useEffect(() => {
     if (phase === 'waiting') {
@@ -51,24 +42,28 @@ export const GameTable: React.FC = () => {
     }
   }, [phase, initGame]);
 
+  // Find the human player's seat
+  const humanSeat = (Object.keys(players) as Wind[]).find(w => players[w].isHuman) || 'east';
+
   // Handle tile click for human player
   const handleTileClick = (tile: typeof selectedTile) => {
     if (!tile) return;
 
     if (selectedTile?.instanceId === tile.instanceId) {
       // Double-click to discard
-      discardTile('south', tile);
+      discardTile(humanSeat, tile);
     } else {
       selectTile(tile);
     }
   };
 
-  // Handle draw action
-  const handleDraw = () => {
-    if (currentTurn === 'south' && turnPhase === 'draw') {
-      drawTile('south');
+  // Handle draw action (unused but kept for potential future use)
+  const _handleDraw = () => {
+    if (currentTurn === humanSeat && turnPhase === 'draw') {
+      drawTile(humanSeat);
     }
   };
+  void _handleDraw; // Suppress unused warning
 
   const winds: Wind[] = ['south', 'east', 'north', 'west'];
   const scores = {
@@ -95,27 +90,30 @@ export const GameTable: React.FC = () => {
       </div>
 
       {/* Player hands in their positions */}
-      {winds.map(wind => (
-        <PlayerHand
-          key={wind}
-          tiles={players[wind].hand}
-          melds={players[wind].melds}
-          flowers={players[wind].flowers}
-          position={positionMap[wind]}
-          isCurrentTurn={currentTurn === wind}
-          isHuman={players[wind].isHuman}
-          seat={wind}
-          selectedTile={wind === 'south' ? selectedTile : null}
-          recommendedTile={wind === 'south' ? teacherSuggestion?.recommendedTile : null}
-          onTileClick={wind === 'south' ? handleTileClick : undefined}
-          onSort={
-            wind === 'south' && phase === 'playing' && currentTurn === 'south' && turnPhase === 'discard'
-              ? sortHand
-              : undefined
-          }
-          canDiscard={wind === 'south' && currentTurn === 'south' && turnPhase === 'discard'}
-        />
-      ))}
+      {winds.map(wind => {
+        const isHuman = players[wind].isHuman;
+        return (
+          <PlayerHand
+            key={wind}
+            tiles={players[wind].hand}
+            melds={players[wind].melds}
+            flowers={players[wind].flowers}
+            position={positionMap[wind]}
+            isCurrentTurn={currentTurn === wind}
+            isHuman={isHuman}
+            seat={wind}
+            selectedTile={isHuman ? selectedTile : null}
+            recommendedTile={isHuman ? teacherSuggestion?.recommendedTile : null}
+            onTileClick={isHuman ? handleTileClick : undefined}
+            onSort={
+              isHuman && phase === 'playing' && currentTurn === wind && turnPhase === 'discard'
+                ? sortHand
+                : undefined
+            }
+            canDiscard={isHuman && currentTurn === wind && turnPhase === 'discard'}
+          />
+        );
+      })}
 
       {/* Floating Sort Button Removed - Integrated into PlayerHand */}
 
