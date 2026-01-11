@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hkos-mahjong-v1';
+const CACHE_NAME = 'hkos-mahjong-v2';
 const urlsToCache = [
   '/',
   '/index.html',
