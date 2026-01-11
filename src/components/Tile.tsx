@@ -18,6 +18,7 @@ interface TileProps {
     exit?: any;
     transition?: any;
   };
+  className?: string;
 }
 
 // Pad number with leading zero if needed (e.g., 9 -> "09")
@@ -76,6 +77,7 @@ export const Tile: React.FC<TileProps> = ({
   rotation = 0,
   enableLayoutAnimation = false,
   animationProps,
+  className = '',
 }) => {
   const sizeClass = isHint ? 'tile-hint' : 'tile-normal';
   const rotationClass = rotation > 0 ? `tile-rotated-${rotation}` : '';
@@ -89,7 +91,7 @@ export const Tile: React.FC<TileProps> = ({
   return (
     <motion.div
       layoutId={layoutId}
-      className={`tile ${sizeClass} ${rotationClass} ${isSelected ? 'selected' : ''} ${isRecommended ? 'recommended' : ''} ${isConcealed ? 'concealed' : ''} ${onClick ? 'clickable' : ''}`}
+      className={`tile ${sizeClass} ${rotationClass} ${isSelected ? 'selected' : ''} ${isRecommended ? 'recommended' : ''} ${isConcealed ? 'concealed' : ''} ${onClick ? 'clickable' : ''} ${className}`}
       onClick={onClick}
       title={isConcealed ? 'Hidden tile' : getTileTitle(tile)}
       initial={animationProps?.initial ?? defaultInitial}

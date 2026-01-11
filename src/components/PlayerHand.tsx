@@ -51,7 +51,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
           className="sort-button-integrated"
           onClick={onSort}
           style={{
-            marginBottom: '8px',
+            marginBottom: '4px',
             padding: '6px 12px',
             fontSize: '12px',
             fontWeight: 'bold',
@@ -81,46 +81,41 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
         </div>
       )}
 
-      {/* Exposed Zone: Melds + Flowers */}
-      <div className="exposed-zone">
-        {/* Flowers */}
-        {flowers.length > 0 && (
-          <div className={`flowers ${isVertical ? 'flowers-vertical' : ''}`}>
-            {flowers.map(tile => (
-              <Tile key={tile.instanceId} tile={tile} isHint={true} rotation={rotation} />
+      {/* Hand Composite: Grouping Exposed (Melds/Flowers) and Active Hand inline */}
+      <div className={`hand-composite ${position}`}>
+        {/* Flowers - Direct Children */}
+        {flowers.map(tile => (
+          <Tile key={`flower-${tile.instanceId}`} tile={tile} rotation={rotation} className="flower-tile" />
+        ))}
+
+        {/* Melds - Wrapper per meld is still needed for grouping 3 tiles, but we can style it inline */}
+        {/* Actually, if we want TRUE wrapping where melds wrap, we keep the meld wrapper. 
+            User complaint: "separate divs is still causing the issue" -> implies the GROUP div for flowers/melds.
+            The individual MELD div (holding 3 tiles) should stay together. 
+            But we want [Flower] [Flower] [Meld] [Meld] [Hand] all in one stream.
+        */}
+        {melds.map((meld, i) => (
+          <div key={`meld-${i}`} className={`meld ${isVertical ? 'meld-vertical' : ''}`}>
+            {meld.tiles.map((tile) => (
+              <Tile
+                key={tile.instanceId}
+                tile={tile}
+                isConcealed={meld.isConcealed}
+                rotation={rotation}
+              />
             ))}
           </div>
-        )}
+        ))}
 
-        {/* Melds */}
-        {melds.length > 0 && (
-          <div className={`melds ${isVertical ? 'melds-vertical' : ''}`}>
-            {melds.map((meld, i) => (
-              <div key={i} className={`meld ${isVertical ? 'meld-vertical' : ''}`}>
-                {meld.tiles.map((tile) => (
-                  <Tile
-                    key={tile.instanceId}
-                    tile={tile}
-                    isConcealed={meld.isConcealed}
-                    rotation={rotation}
-                  />
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Hand tiles */}
-      <div className={`hand-tiles ${isVertical ? 'hand-tiles-vertical' : ''}`} style={{ minWidth: isHuman ? 'auto' : 'auto' }}>
+        {/* Hand tiles - We likely want these to be direct children too? 
+            User said "player hand which is the main flexbox".
+            If we keep <div className="hand-tiles">, that div is a block.
+            If we want hand tiles to wrap WITH flowers, we must UNWRAP hand-tiles too.
+        */}
         <AnimatePresence mode="popLayout">
           {tiles.map((tile, index) => {
-            // Logic to identify the just-drawn tile for the "Float Down" animation.
             const isLastTile = index === tiles.length - 1;
-            const isJustDrawn = isHuman && isLastTile && tiles.length % 3 === 2; // Rough heuristic: typical hands are 13, draw is 14. 14%3=2. 
-            // Better: pass `isJustDrawn` in tile object or use store state. 
-            // For now, re-using existing logic or simplfying.
-
+            const isJustDrawn = isHuman && isLastTile && tiles.length % 3 === 2;
             const customAnim = isJustDrawn ? {
               initial: { opacity: 0, y: -40 },
               animate: { opacity: 1, y: 0 },
@@ -135,9 +130,10 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                 isSelected={selectedTile?.instanceId === tile.instanceId}
                 isRecommended={recommendedTile?.instanceId === tile.instanceId}
                 onClick={isHuman && canDiscard ? () => onTileClick?.(tile) : undefined}
-                enableLayoutAnimation={true} // Enable for everyone to support Discard Layout Animations (Hand -> Pile)
+                enableLayoutAnimation={true}
                 rotation={rotation}
                 animationProps={customAnim}
+                className="hand-tile"
               />
             )
           })}

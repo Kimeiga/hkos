@@ -16,15 +16,15 @@
 
 /* Normal sized tiles (all gameplay tiles) */
 .tile-normal {
-  width: 36px;
-  height: 48px;
+  width: 32px;
+  height: 42px;
   padding: 2px;
 }
 
 /* Rotated tiles for East/West players - swap dimensions */
 .tile-normal.tile-rotated {
-  width: 48px;
-  height: 36px;
+  width: 42px;
+  height: 32px;
 }
 
 /* Hint tiles (smaller for teacher panel suggestions) */
@@ -43,36 +43,36 @@
 /* Rotation Classes */
 
 /* 90 and 270 = LANDSCAPE orientation (Width > Height) */
-/* Target: 48x36 */
+/* Target: 42x32 */
 .tile-rotated-90,
 .tile-rotated-270 {
-  width: 48px;
-  height: 36px;
+  width: 42px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 /* Image needs to rotate but stay centered */
-/* Image was 36x48 (Portrait). Rotated it is 48 wide. */
+/* Image was 32x42 (Portrait). Rotated it is 42 wide. */
 .tile-rotated-90 .tile-image {
   transform: rotate(90deg);
-  width: 36px;
+  width: 32px;
   /* Original Width (now Height visually) */
-  height: 48px;
+  height: 42px;
   /* Original Height (now Width visually) */
 }
 
 .tile-rotated-270 .tile-image {
   transform: rotate(270deg);
-  width: 36px;
-  height: 48px;
+  width: 32px;
+  height: 42px;
 }
 
 /* 180 = PORTRAIT inverted */
 .tile-rotated-180 {
-  width: 36px;
-  height: 48px;
+  width: 32px;
+  height: 42px;
 }
 
 .tile-rotated-180 .tile-image {
@@ -87,7 +87,7 @@
 /* Tile image - SVG face */
 .tile-image {
   width: 100%;
-  height: 100%;
+  /* height: 100%; */
   object-fit: contain;
 }
 

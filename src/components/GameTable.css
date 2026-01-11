@@ -17,8 +17,8 @@
     "left center right"
     "bottom bottom bottom";
 
-  grid-template-rows: auto 1fr auto;
-  grid-template-columns: auto 1fr auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
 
   /* Push content down below fixed GameStateBar (44px + 4px buffer = 48px) */
   padding-top: 48px;

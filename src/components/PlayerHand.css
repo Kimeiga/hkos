@@ -50,6 +50,8 @@
 .player-hand.left {
   flex-direction: row-reverse;
   height: 100%;
+  min-height: 0;
+  /* Allow shrinking below content size */
   justify-content: flex-end;
   /* Push to Left Edge */
 }
@@ -62,6 +64,8 @@
 .player-hand.right {
   flex-direction: row;
   height: 100%;
+  min-height: 0;
+  /* Allow shrinking below content size */
   justify-content: flex-end;
   /* Push to Right Edge */
 }
@@ -72,7 +76,7 @@
   flex-wrap: wrap;
   gap: 2px;
   padding: 4px;
-  background: rgba(0, 0, 0, 0.2);
+  /* background removed */
   border-radius: 4px;
   min-height: 40px;
   max-width: 320px;
@@ -82,46 +86,52 @@
 .discard-pile-vertical {
   flex-direction: column;
   max-width: none;
-  max-height: 32px;
-  /* User Request: Constrain to single tile height effectively */
-  flex-wrap: wrap-reverse;
-  /* Stack columns */
+  height: 100%;
+  /* Fill the entire available grid cell height */
+  max-height: 100%;
+  /* flex-wrap handled per-player */
+  justify-content: center;
 }
 
 /* Position-specific adjustments */
 /* Bottom/Top: Horizontal Discard Layout */
-.player-hand.bottom .discard-pile,
-.player-hand.top .discard-pile {
-  width: 330px;
-  /* Force width to allow multiple tiles per row (~10 tiles small) */
+.player-hand.bottom .discard-pile {
+  width: 100%;
   justify-content: center;
   flex-direction: row;
+  flex-wrap: wrap-reverse;
+  /* Fill Bottom-to-Top (Row 1 at Bottom) */
+}
+
+.player-hand.top .discard-pile {
+  width: 100%;
+  justify-content: center;
+  flex-direction: row;
+  flex-wrap: wrap;
+  /* Fill Top-to-Bottom (Row 1 at Top) */
 }
 
 /* Side players */
-.player-hand.left .discard-pile,
+/* User Request: Take up entire space between top and bottom */
+.player-hand.left .discard-pile {
+  align-items: center;
+  height: 100%;
+  max-height: 100%;
+  min-width: auto;
+  flex-wrap: wrap;
+  /* Fill Left-to-Right (Col 1 at Left) */
+}
+
 .player-hand.right .discard-pile {
   align-items: center;
-  height: 32px;
-  /* User Request: 32px height */
-  max-height: 32px;
+  height: 100%;
+  max-height: 100%;
   min-width: auto;
-  /* Revert fixed width, let columns stack naturally */
-  /* Width will auto-fit the columns */
+  flex-wrap: wrap-reverse;
+  /* Fill Right-to-Left (Col 1 at Right) */
 }
 
-/* Small tiles in discard piles for all players */
-.discard-pile .tile {
-  width: 28px !important;
-  height: 36px !important;
-}
-
-.discard-pile-vertical .tile {
-  width: 32px !important;
-  /* Visual Width (Landscape) */
-  height: 24px !important;
-  /* Visual Height */
-}
+/* Standardize discard tile spacing/sizing logic is now handled in the UNIFORM BOARD TILE SIZES section below */
 
 /* Bottom/Top: Horizontal Discard Layout */
 .player-hand.bottom .discard-zone,
@@ -314,50 +324,100 @@
 }
 
 
-/* --- UNIFORM BOARD TILE SIZES (User Request: Override) --- */
-/* Applies to Melds, Flowers, and Discards for ALL players */
+/* --- HAND COMPOSITE (Inline Hand + Melds) --- */
+/* Flattened structure: [Flowers] [Melds] [HandTiles] */
+.hand-composite {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: wrap;
+  /* Allow wrapping if content exceeds width */
+  justify-content: center;
+  width: 100%;
+}
 
-/* Default Portrait (Top/Bottom) - 28x36 */
+/* Bottom: [Flowers][Melds] [Hand] */
+/* Standard Order: Flowers(1), Melds(2), Hand(3). */
+.hand-composite.bottom {
+  flex-direction: row;
+  align-items: flex-end;
+}
+
+.player-hand.bottom .flower-tile,
+.player-hand.bottom .melds {
+  margin-bottom: 0px;
+  /* Align with hand */
+}
+
+/* Top: [Hand] [Melds] [Flowers] (Visually L->R or R->L?) */
+.hand-composite.top {
+  flex-direction: row-reverse;
+  align-items: flex-start;
+}
+
+/* Side Players: Vertical Wrapping */
+/* Left: [Hand] [Melds] [Flowers] (Top->Bottom) */
+.hand-composite.left {
+  flex-direction: column-reverse;
+  align-items: flex-start;
+  height: 100%;
+  width: auto;
+  align-content: center;
+}
+
+/* Right: [Flowers] [Melds] [Hand] (Top->Bottom) */
+.hand-composite.right {
+  flex-direction: column;
+  align-items: flex-end;
+  height: 100%;
+  width: auto;
+  align-content: center;
+}
+
+
+/* --- UNIFORM BOARD TILE SIZES (User Request: Slightly Smaller Face-Up) --- */
+/* Applies to Melds, Flowers, Discards (BUT NOT Hand Tiles for AI) */
+
+/* Updated Size: 32px x 42px (Down from 36x48) */
 .player-hand.bottom .meld .tile,
-.player-hand.bottom .flowers .tile,
+.flower-tile,
+/* Flowers should be same size */
 .player-hand.bottom .discard-pile .tile,
+.hand-tile,
+/* Hand tiles */
 .player-hand.top .meld .tile,
-.player-hand.top .flowers .tile,
 .player-hand.top .discard-pile .tile {
-  width: 28px !important;
-  height: 36px !important;
+  width: 32px !important;
+  height: 42px !important;
+  padding: 2px;
 }
 
 /* Side Landscape (Left/Right) - Rotated 90deg */
-/* User Request: Height 32px on the IMG/Tile */
-/* Maintain aspect ratio ~3:4 -> 42x32 */
+/* Match rotated geometry: 42px x 32px */
 .player-hand.left .meld .tile,
-.player-hand.left .flowers .tile,
+.player-hand.left .flower-tile,
 .player-hand.left .discard-pile .tile,
+.player-hand.left .hand-tile,
 .player-hand.right .meld .tile,
-.player-hand.right .flowers .tile,
-.player-hand.right .discard-pile .tile {
+.player-hand.right .flower-tile,
+.player-hand.right .discard-pile .tile,
+.player-hand.right .hand-tile {
   width: 42px !important;
   /* Visual Width */
   height: 32px !important;
-  /* Visual Height (User Requested) */
+  /* Visual Height */
+  padding: 2px;
 }
 
-/* Ensure images scale */
-.meld .tile .tile-image,
-.flowers .tile .tile-image,
-.discard-pile .tile .tile-image {
-  width: 100%;
-  height: 100%;
-}
+/* Ensure images scale rules removed to allow Tile.css rotation logic to take precedence */
 
-/* Melds Container Adjustments */
+
+/* --- RESTORED LAYOUT CONTAINERS --- */
 .melds {
   display: flex;
   flex-wrap: wrap;
   flex-direction: row;
   gap: 4px;
-  margin-bottom: 4px;
 }
 
 .melds-vertical {
@@ -368,7 +428,7 @@
   display: flex;
   flex-direction: row;
   gap: 1px;
-  padding: 2px;
+  /* padding removed */
   background: rgba(0, 0, 0, 0.1);
   border-radius: 3px;
 }
@@ -377,12 +437,10 @@
   flex-direction: column;
 }
 
-/* Flowers */
 .flowers {
   display: flex;
   flex-direction: row;
   gap: 2px;
-  margin-bottom: 4px;
   padding: 2px;
   background: rgba(255, 192, 203, 0.2);
   border-radius: 3px;
@@ -392,43 +450,42 @@
   flex-direction: column;
 }
 
-/* --- SMALL TILES FOR AI PLAYERS (User Request) --- */
-/* Target only the Hand Tiles for Top/Left/Right players */
-/* Base Small Size: 28px x 36px (approx 75% of 36x48) */
+/* --- SMALL HAND TILES FOR AI PLAYERS (Remains Compact) --- */
+/* Target only the Hand Tiles for Top/Left/Right */
 
 /* Top (North) - 180deg Portrait */
-.player-hand.top .hand-tiles .tile {
+.player-hand.top .hand-tile {
   width: 28px !important;
   height: 36px !important;
   padding: 1px;
 }
 
 /* Left (West) - 90deg Landscape */
-.player-hand.left .hand-tiles .tile {
-  width: 36px !important;
-  height: 28px !important;
+/* Hand Tiles are now .hand-tile */
+.player-hand.left .hand-tile,
+.player-hand.left .flower-tile {
+  width: 42px !important;
+  height: 32px !important;
   padding: 1px;
 }
 
 /* Right (East) - 270deg Landscape */
-.player-hand.right .hand-tiles .tile {
-  width: 36px !important;
-  height: 28px !important;
+.player-hand.right .hand-tile,
+.player-hand.right .flower-tile {
+  width: 42px !important;
+  height: 32px !important;
   padding: 1px;
 }
 
-/* Ensure inner images/backs scale correctly */
-.player-hand.top .hand-tiles .tile .tile-back,
-.player-hand.left .hand-tiles .tile .tile-back,
-.player-hand.right .hand-tiles .tile .tile-back {
+/* Ensure inner images/backs scale correctly for hand tiles */
+.player-hand.top .hand-tile .tile-back,
+.player-hand.left .hand-tile .tile-back,
+.player-hand.right .hand-tile .tile-back {
   background-size: cover;
-  /* Ensure gradient covers new size */
 }
 
-/* Adjust margins to pack them tighter if needed */
-.player-hand.top .hand-tiles,
-.player-hand.left .hand-tiles,
-.player-hand.right .hand-tiles {
-  gap: 1px;
-  /* Tighter gap for small tiles */
+/* Reset Top Player Meld Direction (Now handled by hand-composite logic) */
+.player-hand.top .melds,
+.player-hand.top .meld {
+  flex-direction: row-reverse;
 }
