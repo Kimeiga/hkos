@@ -41,6 +41,11 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - serve from cache, fall back to network
 self.addEventListener('fetch', (event) => {
+  // Only handle http/https requests (skip chrome-extension, etc.)
+  if (!event.request.url.startsWith('http')) {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
@@ -50,8 +55,12 @@ self.addEventListener('fetch', (event) => {
         }
         // Otherwise fetch from network
         return fetch(event.request).then((response) => {
-          // Don't cache non-successful responses or non-GET requests
-          if (!response || response.status !== 200 || response.type !== 'basic' || event.request.method !== 'GET') {
+          // Don't cache non-successful responses, non-GET requests, or cross-origin
+          if (!response || response.status !== 200 || event.request.method !== 'GET') {
+            return response;
+          }
+          // Only cache same-origin requests
+          if (new URL(event.request.url).origin !== location.origin) {
             return response;
           }
           // Clone the response
