@@ -82,8 +82,8 @@
 .discard-pile-vertical {
   flex-direction: column;
   max-width: none;
-  max-height: 300px;
-  /* Constrain height to force column wrapping */
+  max-height: 32px;
+  /* User Request: Constrain to single tile height effectively */
   flex-wrap: wrap-reverse;
   /* Stack columns */
 }
@@ -102,9 +102,9 @@
 .player-hand.left .discard-pile,
 .player-hand.right .discard-pile {
   align-items: center;
-  height: 300px;
-  /* consistent with max-height to ensure reliable wrapping */
-  max-height: 300px;
+  height: 32px;
+  /* User Request: 32px height */
+  max-height: 32px;
   min-width: auto;
   /* Revert fixed width, let columns stack naturally */
   /* Width will auto-fit the columns */
@@ -238,8 +238,8 @@
 .player-hand.left .exposed-zone,
 .player-hand.right .exposed-zone {
   flex-direction: column;
-  flex-wrap: nowrap;
-  /* Don't wrap columns, stack them tight */
+  flex-wrap: wrap;
+  /* Keep wrap */
   justify-content: center;
 }
 
@@ -314,7 +314,44 @@
 }
 
 
-/* Melds */
+/* --- UNIFORM BOARD TILE SIZES (User Request: Override) --- */
+/* Applies to Melds, Flowers, and Discards for ALL players */
+
+/* Default Portrait (Top/Bottom) - 28x36 */
+.player-hand.bottom .meld .tile,
+.player-hand.bottom .flowers .tile,
+.player-hand.bottom .discard-pile .tile,
+.player-hand.top .meld .tile,
+.player-hand.top .flowers .tile,
+.player-hand.top .discard-pile .tile {
+  width: 28px !important;
+  height: 36px !important;
+}
+
+/* Side Landscape (Left/Right) - Rotated 90deg */
+/* User Request: Height 32px on the IMG/Tile */
+/* Maintain aspect ratio ~3:4 -> 42x32 */
+.player-hand.left .meld .tile,
+.player-hand.left .flowers .tile,
+.player-hand.left .discard-pile .tile,
+.player-hand.right .meld .tile,
+.player-hand.right .flowers .tile,
+.player-hand.right .discard-pile .tile {
+  width: 42px !important;
+  /* Visual Width */
+  height: 32px !important;
+  /* Visual Height (User Requested) */
+}
+
+/* Ensure images scale */
+.meld .tile .tile-image,
+.flowers .tile .tile-image,
+.discard-pile .tile .tile-image {
+  width: 100%;
+  height: 100%;
+}
+
+/* Melds Container Adjustments */
 .melds {
   display: flex;
   flex-wrap: wrap;

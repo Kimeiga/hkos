@@ -18,6 +18,9 @@ export const GameStateBar: React.FC<GameStateBarProps> = ({
     roundWind,
     dealerSeat,
 }) => {
+    // Get auto-play state at the top level (Rules of Hooks)
+    const isAutoPlay = useGameStore(state => state.isAutoPlay);
+    const toggleAutoPlay = useGameStore(state => state.toggleAutoPlay);
 
     // Order logic: Counter-Clockwise from Dealer.
     // Sequence: East, South, West, North.
@@ -57,11 +60,11 @@ export const GameStateBar: React.FC<GameStateBarProps> = ({
             {/* Center: Controls */}
             <div className="center-controls">
                 <button
-                    className={`auto-play-btn ${useGameStore(state => state.isAutoPlay) ? 'active' : ''}`}
-                    onClick={() => useGameStore.getState().toggleAutoPlay()}
+                    className={`auto-play-btn ${isAutoPlay ? 'active' : ''}`}
+                    onClick={toggleAutoPlay}
                     title="Toggle Auto Play"
                 >
-                    {useGameStore(state => state.isAutoPlay) ? 'AUTO ON' : 'AUTO OFF'}
+                    {isAutoPlay ? 'AUTO ON' : 'AUTO OFF'}
                 </button>
             </div>
 
