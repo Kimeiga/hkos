@@ -88,6 +88,24 @@ export const Tile: React.FC<TileProps> = ({
   const defaultExit = { opacity: 0, scale: 0.8 };
   const defaultTransition = { type: 'spring', stiffness: 500, damping: 30 };
 
+  // Calculate explicit dimensions for img to prevent layout jump
+  // Standard: 32x42. Rotated: 42x32.
+  // Hint/Small: 28x36. Rotated Hint: 36x28 (approx/derived from CSS logic)
+  let imgWidth = 32;
+  let imgHeight = 42;
+
+  if (isHint) {
+    imgWidth = 28;
+    imgHeight = 36;
+  }
+
+  // Swap if rotated 90 or 270
+  if (rotation === 90 || rotation === 270) {
+    const temp = imgWidth;
+    imgWidth = imgHeight;
+    imgHeight = temp;
+  }
+
   return (
     <motion.div
       layoutId={layoutId}
@@ -109,6 +127,8 @@ export const Tile: React.FC<TileProps> = ({
           alt={getTileTitle(tile)}
           className="tile-image"
           draggable={false}
+          width={imgWidth}
+          height={imgHeight}
         />
       )}
     </motion.div>

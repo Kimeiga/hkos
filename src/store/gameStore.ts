@@ -10,6 +10,7 @@ import { suggestDiscard } from '../engine/teacher';
 import { calculateShanten } from '../engine/shanten';
 import { canPong, canKong, canChow, canWin } from '../engine/rules';
 import { tilesSameType } from '../types/tile';
+import { AIDifficulty, selectDiscard as aiSelectDiscard, shouldClaim as aiShouldClaim, AIContext } from '../engine/ai';
 
 interface GameStore extends GameState {
   // UI state
@@ -48,6 +49,10 @@ interface GameStore extends GameState {
   isAutoPlay: boolean;
   toggleAutoPlay: () => void;
   playAutoTurn: () => Promise<void>;
+
+  // AI difficulty
+  aiDifficulty: AIDifficulty;
+  setAIDifficulty: (difficulty: AIDifficulty) => void;
 
   // AI actions
   playAITurn: () => Promise<void>;
@@ -90,6 +95,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
   animatingTile: null,
   animationTarget: null,
   claimOffer: null,
+
+  // AI settings
+  aiDifficulty: 'medium' as AIDifficulty,
+  setAIDifficulty: (difficulty: AIDifficulty) => {
+    console.log(`[Game] AI Difficulty set to: ${difficulty}`);
+    set({ aiDifficulty: difficulty });
+  },
 
   initGame: () => {
     console.log('[Game] Initializing...');
@@ -587,16 +599,41 @@ export const useGameStore = create<GameStore>((set, get) => ({
           });
           return true;
         } else {
-          // AI Logic from before
-          if (Math.random() > 0.5) {
-            if (canK) {
-              const matching = state.players[p].hand.filter(t => tilesSameType(t, tile));
-              get().declareKong(p, [...matching, tile]);
-            } else {
-              get().declarePong(p, fromPlayer);
-            }
+          // AI claim decision using AI engine
+          const allDiscards = [
+            ...state.players.east.discards,
+            ...state.players.south.discards,
+            ...state.players.west.discards,
+            ...state.players.north.discards,
+          ];
+
+          const context: AIContext = {
+            hand: state.players[p].hand,
+            melds: state.players[p].melds,
+            seatWind: p,
+            roundWind: state.roundWind,
+            discards: allDiscards,
+            wallRemaining: state.wall.length,
+          };
+
+          const decision = aiShouldClaim(state.aiDifficulty, context, tile, {
+            canWin: false,
+            canPong: canP,
+            canKong: canK,
+            canChow: false,
+          });
+
+          if (decision.action === 'kong') {
+            console.log(`[Game] AI (${state.aiDifficulty}) ${p} claims KONG: ${decision.reasoning}`);
+            const matching = state.players[p].hand.filter(t => tilesSameType(t, tile));
+            get().declareKong(p, [...matching, tile]);
+            return true;
+          } else if (decision.action === 'pong') {
+            console.log(`[Game] AI (${state.aiDifficulty}) ${p} claims PONG: ${decision.reasoning}`);
+            get().declarePong(p, fromPlayer);
             return true;
           }
+          // AI passed
         }
       }
     }
@@ -618,12 +655,37 @@ export const useGameStore = create<GameStore>((set, get) => ({
             return true;
           }
         } else {
-          // AI Logic
-          if (Math.random() > 0.5) {
-            const setTiles = chowSets[Math.floor(Math.random() * chowSets.length)];
-            get().declareChow(nextPlayer, [...setTiles, tile]);
+          // AI chow decision using AI engine
+          const allDiscards = [
+            ...state.players.east.discards,
+            ...state.players.south.discards,
+            ...state.players.west.discards,
+            ...state.players.north.discards,
+          ];
+
+          const context: AIContext = {
+            hand: state.players[nextPlayer].hand,
+            melds: state.players[nextPlayer].melds,
+            seatWind: nextPlayer,
+            roundWind: state.roundWind,
+            discards: allDiscards,
+            wallRemaining: state.wall.length,
+          };
+
+          const decision = aiShouldClaim(state.aiDifficulty, context, tile, {
+            canWin: false,
+            canPong: false,
+            canKong: false,
+            canChow: true,
+            chowSets,
+          });
+
+          if (decision.action === 'chow' && decision.chowSet) {
+            console.log(`[Game] AI (${state.aiDifficulty}) ${nextPlayer} claims CHOW: ${decision.reasoning}`);
+            get().declareChow(nextPlayer, [...decision.chowSet, tile]);
             return true;
           }
+          // AI passed on chow
         }
       }
     }
@@ -721,19 +783,42 @@ export const useGameStore = create<GameStore>((set, get) => ({
       await new Promise(r => setTimeout(r, 600));
     }
 
-    // Discard Phase
-    // Re-fetch state after draw
+    // Discard Phase - use AI engine
     const newState = get();
-
     const hand = newState.players[player].hand;
-    if (hand.length > 0) {
-      // Simple Random AI for Easy Mode:
-      // 1. Check for Win (Self Draw) - TODO: Add canWin check for self draw later? 
-      // For now, just discard random.
 
-      const randomIdx = Math.floor(Math.random() * hand.length);
-      const tileToDiscard = hand[randomIdx];
-      get().discardTile(player, tileToDiscard); // This will now trigger checkClaims
+    if (hand.length > 0) {
+      // Check for self-draw win first
+      if (calculateShanten(hand, newState.players[player].melds) === -1) {
+        console.log(`[Game] AI ${player} declares WIN (self-draw)!`);
+        get().declareWin(player);
+        return;
+      }
+
+      // Gather all visible discards for AI context
+      const allDiscards = [
+        ...newState.players.east.discards,
+        ...newState.players.south.discards,
+        ...newState.players.west.discards,
+        ...newState.players.north.discards,
+      ];
+
+      // Build AI context
+      const context: AIContext = {
+        hand,
+        melds: newState.players[player].melds,
+        seatWind: player,
+        roundWind: newState.roundWind,
+        discards: allDiscards,
+        wallRemaining: newState.wall.length,
+      };
+
+      // Use AI engine to select discard
+      const tileToDiscard = aiSelectDiscard(newState.aiDifficulty, context);
+      console.log(`[Game] AI (${newState.aiDifficulty}) ${player} discards:`,
+        tileToDiscard.value ? `${tileToDiscard.category}-${tileToDiscard.value}` : tileToDiscard.category);
+
+      get().discardTile(player, tileToDiscard);
     } else {
       console.log(`[Game] Warning: AI ${player} has empty hand?`);
     }
