@@ -45,8 +45,6 @@ export const GameTable: React.FC = () => {
   }, [phase, initGame]);
 
   const humanSeat = (Object.keys(players) as Wind[]).find(wind => players[wind].isHuman) || 'east';
-  const isHumanDiscardTurn =
-    phase === 'playing' && currentTurn === humanSeat && turnPhase === 'discard' && !claimOffer;
 
   const handleTileClick = (tile: typeof selectedTile) => {
     if (!tile) return;
@@ -67,13 +65,15 @@ export const GameTable: React.FC = () => {
   };
 
   return (
-    <div className="game-table">
+    <div className={`game-table ${showTeacher ? 'teacher-open' : ''}`}>
       <GameStateBar
         wallCount={wall.length}
         currentTurn={currentTurn}
         scores={scores}
         roundWind={roundWind}
         dealerSeat={dealerSeat}
+        showTeacher={showTeacher}
+        onToggleTeacher={toggleTeacher}
       />
 
       <div className="table-center" />
@@ -103,19 +103,6 @@ export const GameTable: React.FC = () => {
           />
         );
       })}
-
-      {isHumanDiscardTurn && (
-        <div className={`turn-coach ${selectedTile ? 'confirm' : ''}`} role="status" aria-live="polite">
-          <span className="turn-coach-main">
-            {selectedTile
-              ? 'Tap the selected tile again to discard it'
-              : 'Your turn — choose a tile to discard'}
-          </span>
-          {!selectedTile && showTeacher && teacherSuggestion && (
-            <span className="turn-coach-hint">Green marker = coach recommendation</span>
-          )}
-        </div>
-      )}
 
       <TeacherPanel
         suggestion={teacherSuggestion}
