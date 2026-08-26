@@ -4,6 +4,7 @@ import { Tile as TileType, Wind } from '../types/tile';
 import { Meld } from '../types/meld';
 import { Tile } from './Tile';
 import './PlayerHand.css';
+import './HumanActionRow.css';
 
 interface PlayerHandProps {
   tiles: TileType[];
