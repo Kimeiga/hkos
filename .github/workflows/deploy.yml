@@ -4,7 +4,15 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
+
+concurrency:
+  group: cloudflare-pages-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -12,6 +20,7 @@ jobs:
     permissions:
       contents: read
       deployments: write
+      pull-requests: read
     name: Deploy to Cloudflare Pages
     steps:
       - name: Checkout
@@ -29,10 +38,36 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Choose Cloudflare branch
+        id: branch
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "name=pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
+        id: deploy
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=hkos
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          command: pages deploy dist --project-name=hkos --branch=${{ steps.branch.outputs.name }}
 
+      - name: Publish preview URLs
+        shell: bash
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+          ALIAS_URL: ${{ steps.deploy.outputs.pages-deployment-alias-url }}
+        run: |
+          {
+            echo "### Cloudflare Pages deployment"
+            echo ""
+            echo "- Immutable deployment: $DEPLOYMENT_URL"
+            if [ -n "$ALIAS_URL" ]; then
+              echo "- Stable branch preview: $ALIAS_URL"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
