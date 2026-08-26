@@ -1,0 +1,69 @@
+.human-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 30px;
+  margin: 0 0 4px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  color: #fff;
+}
+
+.hand-instruction {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 3px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(8, 15, 10, 0.78);
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.hand-instruction.confirm {
+  border-color: rgba(255, 215, 0, 0.65);
+  color: #fff5b8;
+  background: rgba(39, 31, 0, 0.78);
+}
+
+.sort-button-integrated {
+  min-height: 26px;
+  padding: 3px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.sort-button-integrated:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 700px) {
+  .human-action-row {
+    gap: 5px;
+    min-height: 28px;
+    margin-bottom: 2px;
+    padding: 0 4px;
+  }
+
+  .hand-instruction {
+    min-height: 22px;
+    padding: 2px 7px;
+    font-size: 10px;
+  }
+
+  .sort-button-integrated {
+    min-height: 24px;
+    padding: 2px 7px;
+    font-size: 10px;
+  }
+}
