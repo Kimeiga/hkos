@@ -1,10 +1,12 @@
 .teacher-panel {
   position: fixed;
-  top: 44px;
   right: 0;
+  top: 44px;
   width: 320px;
   height: calc(100dvh - 44px);
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   box-sizing: border-box;
   background: rgba(21, 31, 39, 0.98);
   border-left: 1px solid rgba(255, 255, 255, 0.14);
@@ -49,7 +51,7 @@
   height: 28px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 17px;
+  font-size: 20px;
   line-height: 1;
 }
 
@@ -97,6 +99,10 @@
   flex: 0 0 auto;
 }
 
+.rec-tile .tile.clickable {
+  cursor: help;
+}
+
 .reasoning {
   margin-bottom: 12px;
 }
@@ -111,6 +117,24 @@
   color: #f1f4f5;
   font-size: 13px;
   line-height: 1.45;
+}
+
+.inline-rule-link,
+.stat-link {
+  padding: 0;
+  border: 0;
+  border-bottom: 1px dashed rgba(255, 224, 107, 0.62);
+  background: transparent;
+  color: #ffe06b;
+  font: inherit;
+  font-weight: 800;
+  cursor: help;
+}
+
+.inline-rule-link:hover,
+.stat-link:hover {
+  color: #fff2a5;
+  border-bottom-style: solid;
 }
 
 .stats {
@@ -135,13 +159,14 @@
   color: #a7b2ba;
 }
 
-.stat-value {
+.stat-value,
+.stat-link {
   color: #f4f6f7;
   font-weight: 750;
   text-align: right;
 }
 
-.stat-value.fan {
+.stat-link.fan {
   color: #ffe06b;
 }
 
@@ -162,6 +187,18 @@
   gap: 4px;
 }
 
+.alt-item-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: help;
+}
+
+.alt-item-button:hover .tile {
+  outline: 1px solid rgba(255, 224, 107, 0.6);
+}
+
 .alt-reason {
   font-size: 10px;
   color: #a7b2ba;
@@ -174,8 +211,6 @@
   line-height: 1.4;
 }
 
-/* On narrow screens the Coach uses only the empty center of the table.
-   It is intentionally compact so it never covers any player's hand. */
 @media (max-width: 900px) {
   .teacher-panel {
     top: 50%;
@@ -189,31 +224,5 @@
     border-radius: 10px;
     padding: 10px;
     box-shadow: 0 14px 36px rgba(0, 0, 0, 0.48);
-  }
-
-  .teacher-header {
-    margin-bottom: 8px;
-    padding-bottom: 7px;
-  }
-
-  .teacher-subtitle,
-  .rec-help,
-  .stats,
-  .alternatives {
-    display: none;
-  }
-
-  .recommendation {
-    margin-bottom: 8px;
-    padding: 8px;
-  }
-
-  .reasoning {
-    margin-bottom: 0;
-  }
-
-  .reasoning-text {
-    font-size: 12px;
-    line-height: 1.35;
   }
 }

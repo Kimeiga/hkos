@@ -6,8 +6,10 @@ const previewUrl = process.env.PREVIEW_URL;
 if (!previewUrl) throw new Error('PREVIEW_URL is required');
 
 const scenarios = [
-  { name: 'desktop', viewport: { width: 1440, height: 900 }, isMobile: false },
-  { name: 'iphone', viewport: { width: 390, height: 844 }, isMobile: true },
+  { name: 'iphone', viewport: { width: 390, height: 844 }, isMobile: true, tileRange: [31, 35] },
+  { name: 'tablet', viewport: { width: 768, height: 1024 }, isMobile: false, tileRange: [32, 38] },
+  { name: 'desktop', viewport: { width: 1440, height: 900 }, isMobile: false, tileRange: [44, 51] },
+  { name: 'desktop-wide', viewport: { width: 1920, height: 1080 }, isMobile: false, tileRange: [53, 59] },
 ];
 
 await fs.mkdir('qa-screenshots', { recursive: true });
@@ -47,10 +49,22 @@ for (const scenario of scenarios) {
       failures.push(`${scenario.name}: horizontal overflow ${overflow.width}px > ${overflow.viewport}px`);
     }
 
+    const teacherToggle = page.locator('.teacher-toggle-btn');
+    await teacherToggle.waitFor({ state: 'visible', timeout: 5_000 });
+    if (await page.locator('.teacher-panel').isVisible()) await teacherToggle.click();
+
     const playableTile = page.locator('.player-hand.bottom .hand-tile.clickable').first();
     await playableTile.waitFor({ state: 'visible', timeout: 15_000 });
-    await playableTile.click();
 
+    const initialTileBox = await playableTile.boundingBox();
+    if (initialTileBox) {
+      const [minWidth, maxWidth] = scenario.tileRange;
+      if (initialTileBox.width < minWidth || initialTileBox.width > maxWidth) {
+        failures.push(`${scenario.name}: human tile width ${initialTileBox.width.toFixed(1)}px outside expected fluid range ${minWidth}-${maxWidth}px`);
+      }
+    }
+
+    await playableTile.click();
     if (!(await playableTile.evaluate(el => el.classList.contains('selected')))) {
       failures.push(`${scenario.name}: clicking a human tile did not select it`);
     }
@@ -68,18 +82,9 @@ for (const scenario of scenarios) {
       failures.push(`${scenario.name}: discard instruction overlaps the human hand`);
     }
 
-    const recommended = page.locator('.player-hand.bottom .tile.recommended').first();
-    if (await recommended.count()) {
-      const tipContent = await recommended.evaluate(el => getComputedStyle(el, '::after').content);
-      if (!tipContent.includes('TIP')) failures.push(`${scenario.name}: recommended tile is missing TIP marker`);
-    }
-
     await page.screenshot({ path: `qa-screenshots/${scenario.name}.png`, fullPage: true });
 
-    const teacherToggle = page.locator('.teacher-toggle-btn');
-    await teacherToggle.waitFor({ state: 'visible', timeout: 5_000 });
-    if (!(await page.locator('.teacher-panel').isVisible())) await teacherToggle.click();
-
+    await teacherToggle.click();
     const coach = page.locator('.teacher-panel');
     await coach.waitFor({ state: 'visible', timeout: 5_000 });
     await page.waitForTimeout(250);
@@ -92,7 +97,39 @@ for (const scenario of scenarios) {
       }
     }
 
+    if (scenario.name === 'iphone') {
+      for (const selector of ['.teacher-subtitle', '.stats', '.alternatives']) {
+        if (!(await coach.locator(selector).isVisible())) {
+          failures.push(`iphone: full Coach information missing: ${selector}`);
+        }
+      }
+      const overflowY = await coach.evaluate(el => getComputedStyle(el).overflowY);
+      if (!['auto', 'scroll'].includes(overflowY)) failures.push(`iphone: Coach surface is not scrollable (overflow-y=${overflowY})`);
+    }
+
+    const recommended = page.locator('.player-hand.bottom .tile.recommended').first();
+    if (await recommended.count()) {
+      const tipContent = await recommended.evaluate(el => getComputedStyle(el, '::after').content);
+      if (!tipContent.includes('TIP')) failures.push(`${scenario.name}: recommended tile is missing TIP marker`);
+    }
+
     await page.screenshot({ path: `qa-screenshots/${scenario.name}-coach.png`, fullPage: true });
+
+    const handLink = coach.locator('.inline-rule-link');
+    await handLink.waitFor({ state: 'visible', timeout: 5_000 });
+    await handLink.click();
+    const knowledge = page.locator('.knowledge-card');
+    await knowledge.waitFor({ state: 'visible', timeout: 5_000 });
+    if (!(await knowledge.getByText(/Basic|Flush|Pungs|Dragon/i).first().isVisible())) {
+      failures.push(`${scenario.name}: Coach hand link did not open a rulebook detail`);
+    }
+    await knowledge.locator('.knowledge-close').click();
+
+    const rulebookButton = page.locator('.rulebook-toggle-btn');
+    await rulebookButton.click();
+    await page.locator('.knowledge-card').waitFor({ state: 'visible', timeout: 5_000 });
+    if (!(await page.locator('.rulebook-search').isVisible())) failures.push(`${scenario.name}: rulebook search is missing`);
+    await page.locator('.knowledge-close').click();
 
     if (runtimeErrors.length) failures.push(...runtimeErrors.map(error => `${scenario.name}: ${error}`));
   } catch (error) {

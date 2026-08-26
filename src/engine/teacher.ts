@@ -26,8 +26,7 @@ export const calculateUkeire = (hand: Tile[], melds: Meld[], discardTile: Tile):
     const newShanten = calculateShanten(testHand, melds);
     
     if (newShanten < currentShanten) {
-      // This tile type improves the hand
-      // Count how many copies could still be available (simplified - assume 4 max)
+      // Simplified estimate: assume all four copies could still be live.
       improvingTiles += 4;
     }
   }
@@ -47,7 +46,7 @@ export const evaluateHandTargets = (hand: Tile[], melds: Meld[]): HandTarget[] =
   const targets: HandTarget[] = [];
   const allTiles = [...hand, ...melds.flatMap(m => m.tiles)];
   
-  // Check Mixed Flush potential
+  // Check Half Flush potential (one suit + honors)
   for (const suit of SUITS) {
     const suitTiles = allTiles.filter(t => t.suit === suit);
     const honorTiles = allTiles.filter(isHonorTile);
@@ -55,7 +54,7 @@ export const evaluateHandTargets = (hand: Tile[], melds: Meld[]): HandTarget[] =
     
     if (suitTiles.length + honorTiles.length >= 10 && otherSuitTiles.length <= 3) {
       targets.push({
-        name: 'Mixed Flush',
+        name: 'Half Flush',
         fanValue: 3,
         probability: 0.5 + (suitTiles.length + honorTiles.length) / 28,
         requiredTiles: [`${suit} tiles`, 'honor tiles'],
@@ -63,15 +62,15 @@ export const evaluateHandTargets = (hand: Tile[], melds: Meld[]): HandTarget[] =
     }
   }
   
-  // Check Pure Flush potential
+  // Check Full Flush potential (one suit only)
   for (const suit of SUITS) {
     const suitTiles = allTiles.filter(t => t.suit === suit);
     const nonSuitTiles = allTiles.filter(t => isSuitedTile(t) && t.suit !== suit);
     
     if (suitTiles.length >= 11 && nonSuitTiles.length <= 2) {
       targets.push({
-        name: 'Pure Flush',
-        fanValue: 7,
+        name: 'Full Flush',
+        fanValue: 6,
         probability: 0.3 + suitTiles.length / 26,
         requiredTiles: [`${suit} tiles only`],
       });
@@ -142,7 +141,8 @@ export const suggestDiscard = (
       shanten,
       ukeire,
       targetHand: bestTarget?.name || 'Basic Hand',
-      fanPotential: bestTarget?.fanValue || 1,
+      // A standard four-sets-and-a-pair hand is a winning structure, not a fan by itself.
+      fanPotential: bestTarget?.fanValue ?? 0,
     });
   }
   
@@ -156,14 +156,16 @@ export const suggestDiscard = (
   const best = evaluations[0];
   const alternatives = evaluations.slice(1, 4).map(e => ({
     tile: e.tile,
-    reasoning: `Shanten: ${e.shanten}, ${e.ukeire} improving tiles`,
+    reasoning: `Shanten: ${e.shanten}, ${e.ukeire} estimated improving copies`,
     fanPotential: e.fanPotential,
     tilesNeeded: e.ukeire,
   }));
   
   return {
     recommendedTile: best.tile,
-    reasoning: `Moves toward ${best.targetHand} (${best.fanPotential} fan). ${best.ukeire} tiles can improve.`,
+    reasoning: best.fanPotential > 0
+      ? `Moves toward ${best.targetHand} (${best.fanPotential} fan). ${best.ukeire} estimated improving copies.`
+      : `Moves toward a standard winning structure. ${best.ukeire} estimated improving copies.`,
     targetHand: best.targetHand,
     fanPotential: best.fanPotential,
     tilesNeeded: best.ukeire,
@@ -205,4 +207,3 @@ const createMockTile = (id: string): Tile | null => {
   }
   return null;
 };
-

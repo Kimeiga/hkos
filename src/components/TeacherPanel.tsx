@@ -1,5 +1,6 @@
 import React from 'react';
 import { TeacherSuggestion } from '../types/game';
+import { Tile as TileType } from '../types/tile';
 import { Tile } from './Tile';
 import './TeacherPanel.css';
 
@@ -7,14 +8,24 @@ interface TeacherPanelProps {
   suggestion: TeacherSuggestion | null;
   isVisible: boolean;
   onToggle: () => void;
+  onOpenHand: (handName: string) => void;
+  onOpenTile: (tile: TileType) => void;
 }
 
 export const TeacherPanel: React.FC<TeacherPanelProps> = ({
   suggestion,
   isVisible,
   onToggle,
+  onOpenHand,
+  onOpenTile,
 }) => {
   if (!isVisible) return null;
+
+  const fanLabel = suggestion
+    ? suggestion.fanPotential > 0
+      ? `${suggestion.fanPotential} fan`
+      : '0 fan by itself'
+    : '';
 
   return (
     <aside className="teacher-panel visible" aria-label="Mahjong coach">
@@ -23,9 +34,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
           <h3>🎓 Coach</h3>
           <div className="teacher-subtitle">Why a move is good, not just what to click</div>
         </div>
-        <button className="toggle-btn" onClick={onToggle} aria-label="Close coach">
-          ×
-        </button>
+        <button className="toggle-btn" onClick={onToggle} aria-label="Close coach">×</button>
       </div>
 
       {suggestion ? (
@@ -33,29 +42,43 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
           <div className="recommendation">
             <div>
               <div className="rec-label">Best discard</div>
-              <div className="rec-help">The same tile is marked green in your hand.</div>
+              <div className="rec-help">The same tile is marked green in your hand. Tap this tile to learn what it is.</div>
             </div>
             <div className="rec-tile">
-              <Tile tile={suggestion.recommendedTile} isRecommended />
+              <Tile
+                tile={suggestion.recommendedTile}
+                isRecommended
+                onClick={() => onOpenTile(suggestion.recommendedTile)}
+              />
             </div>
           </div>
 
           <div className="reasoning">
             <div className="reasoning-label">Why this move</div>
-            <div className="reasoning-text">{suggestion.reasoning}</div>
+            <div className="reasoning-text">
+              Moves toward{' '}
+              <button className="inline-rule-link" onClick={() => onOpenHand(suggestion.targetHand)}>
+                {suggestion.targetHand}
+              </button>{' '}
+              ({fanLabel}). {suggestion.tilesNeeded} estimated improving copies.
+            </div>
           </div>
 
           <div className="stats">
             <div className="stat">
               <span className="stat-label">Plan</span>
-              <span className="stat-value">{suggestion.targetHand}</span>
+              <button className="stat-link" onClick={() => onOpenHand(suggestion.targetHand)}>
+                {suggestion.targetHand}
+              </button>
             </div>
             <div className="stat">
               <span className="stat-label">Fan potential</span>
-              <span className="stat-value fan">{suggestion.fanPotential} fan</span>
+              <button className="stat-link fan" onClick={() => onOpenHand(suggestion.targetHand)}>
+                {fanLabel}
+              </button>
             </div>
             <div className="stat">
-              <span className="stat-label">Improving tiles (est.)</span>
+              <span className="stat-label">Improving copies (rough est.)</span>
               <span className="stat-value">{suggestion.tilesNeeded}</span>
             </div>
           </div>
@@ -65,10 +88,15 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
               <div className="alt-label">Other reasonable discards</div>
               <div className="alt-list">
                 {suggestion.alternativeMoves.slice(0, 2).map((alt, index) => (
-                  <div key={index} className="alt-item">
+                  <button
+                    key={index}
+                    className="alt-item alt-item-button"
+                    onClick={() => onOpenTile(alt.tile)}
+                    aria-label={`Explain ${alt.tile.id}`}
+                  >
                     <Tile tile={alt.tile} isHint />
                     <span className="alt-reason">{alt.fanPotential} fan</span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -76,9 +104,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
         </div>
       ) : (
         <div className="teacher-content">
-          <div className="no-suggestion">
-            The coach will explain a discard when it is your turn.
-          </div>
+          <div className="no-suggestion">The coach will explain a discard when it is your turn.</div>
         </div>
       )}
     </aside>

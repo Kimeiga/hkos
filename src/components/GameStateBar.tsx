@@ -11,6 +11,7 @@ interface GameStateBarProps {
     dealerSeat: Wind;
     showTeacher: boolean;
     onToggleTeacher: () => void;
+    onOpenRulebook: () => void;
 }
 
 export const GameStateBar: React.FC<GameStateBarProps> = ({
@@ -21,6 +22,7 @@ export const GameStateBar: React.FC<GameStateBarProps> = ({
     dealerSeat,
     showTeacher,
     onToggleTeacher,
+    onOpenRulebook,
 }) => {
     const isAutoPlay = useGameStore(state => state.isAutoPlay);
     const toggleAutoPlay = useGameStore(state => state.toggleAutoPlay);
@@ -71,6 +73,15 @@ export const GameStateBar: React.FC<GameStateBarProps> = ({
                 >
                     <span className="teacher-toggle-icon">🎓</span>
                     <span className="teacher-toggle-label">COACH</span>
+                </button>
+                <button
+                    className="rulebook-toggle-btn"
+                    onClick={onOpenRulebook}
+                    title="Open HKOS Rulebook"
+                    aria-label="Open HKOS rulebook"
+                >
+                    <span aria-hidden="true">📖</span>
+                    <span className="rulebook-toggle-label">RULES</span>
                 </button>
             </div>
 
