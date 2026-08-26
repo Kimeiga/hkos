@@ -6,10 +6,10 @@ const previewUrl = process.env.PREVIEW_URL;
 if (!previewUrl) throw new Error('PREVIEW_URL is required');
 
 const scenarios = [
-  { name: 'iphone', viewport: { width: 390, height: 844 }, isMobile: true, tileRange: [31, 35] },
-  { name: 'tablet', viewport: { width: 768, height: 1024 }, isMobile: false, tileRange: [32, 38] },
-  { name: 'desktop', viewport: { width: 1440, height: 900 }, isMobile: false, tileRange: [44, 51] },
-  { name: 'desktop-wide', viewport: { width: 1920, height: 1080 }, isMobile: false, tileRange: [53, 59] },
+  { name: 'iphone', viewport: { width: 390, height: 844 }, isMobile: true, tileRange: [31.5, 32.5] },
+  { name: 'tablet', viewport: { width: 768, height: 1024 }, isMobile: false, tileRange: [41, 44] },
+  { name: 'desktop', viewport: { width: 1440, height: 900 }, isMobile: false, tileRange: [64, 66] },
+  { name: 'desktop-wide', viewport: { width: 1920, height: 1080 }, isMobile: false, tileRange: [71, 73] },
 ];
 
 await fs.mkdir('qa-screenshots', { recursive: true });
@@ -37,6 +37,7 @@ for (const scenario of scenarios) {
   try {
     await page.goto(previewUrl, { waitUntil: 'networkidle', timeout: 45_000 });
     await page.locator('.game-table').waitFor({ state: 'visible', timeout: 15_000 });
+    await page.waitForTimeout(800); // let Framer Motion deal/draw animations settle
 
     const title = await page.title();
     if (!/HKOS|Mahjong/i.test(title)) failures.push(`${scenario.name}: unexpected title: ${title}`);
@@ -56,13 +57,23 @@ for (const scenario of scenarios) {
     const playableTile = page.locator('.player-hand.bottom .hand-tile.clickable').first();
     await playableTile.waitFor({ state: 'visible', timeout: 15_000 });
 
-    const initialTileBox = await playableTile.boundingBox();
-    if (initialTileBox) {
-      const [minWidth, maxWidth] = scenario.tileRange;
-      if (initialTileBox.width < minWidth || initialTileBox.width > maxWidth) {
-        failures.push(`${scenario.name}: human tile width ${initialTileBox.width.toFixed(1)}px outside expected fluid range ${minWidth}-${maxWidth}px`);
-      }
+    // Read the computed CSS size, not the animated bounding box. Bounding boxes
+    // can briefly report Framer Motion's transform scale during dealing.
+    const computedTileWidth = await playableTile.evaluate(el => parseFloat(getComputedStyle(el).width));
+    const [minWidth, maxWidth] = scenario.tileRange;
+    if (computedTileWidth < minWidth || computedTileWidth > maxWidth) {
+      failures.push(`${scenario.name}: computed human tile width ${computedTileWidth.toFixed(1)}px outside expected fluid range ${minWidth}-${maxWidth}px`);
     }
+
+    const clippedTiles = await page.evaluate(() => {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      return Array.from(document.querySelectorAll('.player-hand .tile'))
+        .map((el, index) => ({ index, rect: el.getBoundingClientRect() }))
+        .filter(({ rect }) => rect.right < -1 || rect.left > vw + 1 || rect.bottom < -1 || rect.top > vh + 1)
+        .length;
+    });
+    if (clippedTiles > 0) failures.push(`${scenario.name}: ${clippedTiles} player tiles are completely outside the viewport`);
 
     await playableTile.click();
     if (!(await playableTile.evaluate(el => el.classList.contains('selected')))) {
@@ -120,16 +131,23 @@ for (const scenario of scenarios) {
     await handLink.click();
     const knowledge = page.locator('.knowledge-card');
     await knowledge.waitFor({ state: 'visible', timeout: 5_000 });
-    if (!(await knowledge.getByText(/Basic|Flush|Pungs|Dragon/i).first().isVisible())) {
-      failures.push(`${scenario.name}: Coach hand link did not open a rulebook detail`);
+    if (!(await knowledge.locator('h2').first().isVisible()) || !(await knowledge.locator('.knowledge-definition').first().isVisible())) {
+      failures.push(`${scenario.name}: Coach hand link did not open a populated rulebook detail`);
+    }
+    if (scenario.name === 'iphone' || scenario.name === 'desktop') {
+      await page.screenshot({ path: `qa-screenshots/${scenario.name}-rule-detail.png`, fullPage: true });
     }
     await knowledge.locator('.knowledge-close').click();
 
     const rulebookButton = page.locator('.rulebook-toggle-btn');
     await rulebookButton.click();
-    await page.locator('.knowledge-card').waitFor({ state: 'visible', timeout: 5_000 });
+    const rulebook = page.locator('.knowledge-card');
+    await rulebook.waitFor({ state: 'visible', timeout: 5_000 });
     if (!(await page.locator('.rulebook-search').isVisible())) failures.push(`${scenario.name}: rulebook search is missing`);
-    await page.locator('.knowledge-close').click();
+    if (scenario.name === 'iphone' || scenario.name === 'desktop') {
+      await page.screenshot({ path: `qa-screenshots/${scenario.name}-rulebook.png`, fullPage: true });
+    }
+    await rulebook.locator('.knowledge-close').click();
 
     if (runtimeErrors.length) failures.push(...runtimeErrors.map(error => `${scenario.name}: ${error}`));
   } catch (error) {
