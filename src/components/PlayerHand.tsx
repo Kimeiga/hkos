@@ -36,7 +36,6 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
   canDiscard,
 }) => {
   const showTiles = isHuman || position === 'bottom';
-  // Determine rotation based on position
   let rotation: 0 | 90 | 180 | 270 = 0;
   if (position === 'left') rotation = 90;
   if (position === 'right') rotation = 270;
@@ -45,29 +44,6 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
 
   return (
     <div className={`player-hand ${position} ${isCurrentTurn ? 'current-turn' : ''}`}>
-      {/* Sort Button Logic (Human Only) - Top of Stack/Overlay */}
-      {isHuman && onSort && (
-        <button
-          className="sort-button-integrated"
-          onClick={onSort}
-          style={{
-            marginBottom: '4px',
-            padding: '6px 12px',
-            fontSize: '12px',
-            fontWeight: 'bold',
-            background: 'rgba(0,0,0,0.5)',
-            color: '#fff',
-            border: '1px solid rgba(255,255,255,0.3)',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            pointerEvents: 'auto',
-          }}
-        >
-          Sort Hand
-        </button>
-      )}
-
-      {/* Discard pile - MOVED TO TOP (Furthest from Player) */}
       {discards.length > 0 && (
         <div className={`discard-pile ${isVertical ? 'discard-pile-vertical' : ''}`}>
           {discards.map(tile => (
@@ -81,19 +57,24 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
         </div>
       )}
 
-      {/* Hand Composite: Grouping Exposed (Melds/Flowers) and Active Hand inline */}
+      {isHuman && canDiscard && (
+        <div className="human-action-row" role="status" aria-live="polite">
+          <span className={`hand-instruction ${selectedTile ? 'confirm' : ''}`}>
+            {selectedTile ? 'Selected — tap again to discard' : 'Choose a tile to discard'}
+          </span>
+          {onSort && (
+            <button className="sort-button-integrated" onClick={onSort}>
+              Sort
+            </button>
+          )}
+        </div>
+      )}
+
       <div className={`hand-composite ${position}`}>
-        {/* Flowers - Direct Children */}
         {flowers.map(tile => (
           <Tile key={`flower-${tile.instanceId}`} tile={tile} rotation={rotation} className="flower-tile" />
         ))}
 
-        {/* Melds - Wrapper per meld is still needed for grouping 3 tiles, but we can style it inline */}
-        {/* Actually, if we want TRUE wrapping where melds wrap, we keep the meld wrapper. 
-            User complaint: "separate divs is still causing the issue" -> implies the GROUP div for flowers/melds.
-            The individual MELD div (holding 3 tiles) should stay together. 
-            But we want [Flower] [Flower] [Meld] [Meld] [Hand] all in one stream.
-        */}
         {melds.map((meld, i) => (
           <div key={`meld-${i}`} className={`meld ${isVertical ? 'meld-vertical' : ''}`}>
             {meld.tiles.map((tile) => (
@@ -107,11 +88,6 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
           </div>
         ))}
 
-        {/* Hand tiles - We likely want these to be direct children too? 
-            User said "player hand which is the main flexbox".
-            If we keep <div className="hand-tiles">, that div is a block.
-            If we want hand tiles to wrap WITH flowers, we must UNWRAP hand-tiles too.
-        */}
         <AnimatePresence mode="popLayout">
           {tiles.map((tile, index) => {
             const isLastTile = index === tiles.length - 1;
@@ -119,7 +95,7 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
             const customAnim = isJustDrawn ? {
               initial: { opacity: 0, y: -40 },
               animate: { opacity: 1, y: 0 },
-              transition: { duration: 0.4, ease: "easeOut" }
+              transition: { duration: 0.4, ease: 'easeOut' }
             } : undefined;
 
             return (
@@ -135,12 +111,10 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
                 animationProps={customAnim}
                 className="hand-tile"
               />
-            )
+            );
           })}
         </AnimatePresence>
       </div>
     </div>
   );
 };
-
-
