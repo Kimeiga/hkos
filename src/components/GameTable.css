@@ -13,6 +13,7 @@
   grid-template-columns: auto minmax(0, 1fr) auto;
   padding-top: 48px;
   box-sizing: border-box;
+  transition: width 0.2s ease;
 }
 
 .game-table::before {
@@ -48,41 +49,15 @@
   grid-area: right;
 }
 
-.turn-coach {
-  position: fixed;
-  left: 50%;
-  bottom: 8px;
-  transform: translateX(-50%);
-  z-index: 80;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  max-width: min(560px, calc(100vw - 24px));
-  padding: 8px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 999px;
-  background: rgba(9, 17, 12, 0.9);
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(10px);
-  color: #fff;
-  pointer-events: none;
-}
+/* On wide screens the Coach owns a real rail; it never floats over a player. */
+@media (min-width: 901px) {
+  .game-table.teacher-open {
+    width: calc(100vw - 320px);
+  }
 
-.turn-coach.confirm {
-  border-color: rgba(255, 215, 0, 0.65);
-  box-shadow: 0 0 0 1px rgba(255, 215, 0, 0.12), 0 6px 24px rgba(0, 0, 0, 0.4);
-}
-
-.turn-coach-main {
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.turn-coach-hint {
-  font-size: 11px;
-  color: #8ee595;
-  white-space: nowrap;
+  .game-table.teacher-open .game-state-bar {
+    width: calc(100vw - 320px);
+  }
 }
 
 .game-over-overlay {
@@ -238,23 +213,6 @@
 }
 
 @media (max-width: 700px) {
-  .turn-coach {
-    bottom: 6px;
-    gap: 6px;
-    padding: 7px 10px;
-    border-radius: 10px;
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .turn-coach-main {
-    font-size: 12px;
-  }
-
-  .turn-coach-hint {
-    font-size: 10px;
-  }
-
   .action-panel {
     padding: 16px;
   }
@@ -270,5 +228,11 @@
   .action-btn {
     flex: 1 1 120px;
     min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-table {
+    transition: none;
   }
 }
