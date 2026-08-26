@@ -1,5 +1,6 @@
 name: Deploy to Cloudflare Pages
 
+# Pull requests deploy to stable pr-N aliases for browser QA.
 on:
   push:
     branches:
