@@ -14,18 +14,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
   isVisible,
   onToggle,
 }) => {
-  if (!isVisible) {
-    return (
-      <button
-        className="teacher-collapsed"
-        onClick={onToggle}
-        title="Open coach"
-        aria-label="Open Mahjong coach"
-      >
-        🎓
-      </button>
-    );
-  }
+  if (!isVisible) return null;
 
   return (
     <aside className="teacher-panel visible" aria-label="Mahjong coach">
@@ -34,8 +23,8 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
           <h3>🎓 Coach</h3>
           <div className="teacher-subtitle">Why a move is good, not just what to click</div>
         </div>
-        <button className="toggle-btn" onClick={onToggle} aria-label="Collapse coach">
-          −
+        <button className="toggle-btn" onClick={onToggle} aria-label="Close coach">
+          ×
         </button>
       </div>
 
