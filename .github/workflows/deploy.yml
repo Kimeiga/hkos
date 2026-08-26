@@ -3,11 +3,11 @@ name: Deploy to Cloudflare Pages
 on:
   push:
     branches:
-      - main
+      - '**'
   pull_request:
     branches:
       - main
-    types: [opened, synchronize, reopened]
+    types: [opened, reopened]
   workflow_dispatch:
 
 concurrency:
@@ -25,6 +25,7 @@ jobs:
     outputs:
       preview_url: ${{ steps.preview.outputs.url }}
       deployment_url: ${{ steps.preview.outputs.immutable_url }}
+      is_preview: ${{ steps.branch.outputs.is_preview }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -44,11 +45,24 @@ jobs:
       - name: Choose Cloudflare branch
         id: branch
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "name=pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+            echo "is_preview=true" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.ref_name }}" = "main" ]; then
+            echo "name=main" >> "$GITHUB_OUTPUT"
+            echo "is_preview=false" >> "$GITHUB_OUTPUT"
           else
-            echo "name=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            pr_number="$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" --jq '.[0].number // empty' 2>/dev/null || true)"
+            if [ -n "$pr_number" ]; then
+              branch_name="pr-$pr_number"
+            else
+              branch_name="$(printf '%s' "${GITHUB_REF_NAME}" | tr '/_' '--')"
+            fi
+            echo "name=$branch_name" >> "$GITHUB_OUTPUT"
+            echo "is_preview=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Deploy to Cloudflare Pages
@@ -91,10 +105,10 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   browser-qa:
-    if: github.event_name == 'pull_request'
+    if: needs.deploy.outputs.is_preview == 'true'
     needs: deploy
     runs-on: ubuntu-latest
-    name: Browser QA (desktop + iPhone)
+    name: Browser QA (responsive)
     steps:
       - name: Checkout
         uses: actions/checkout@v4
