@@ -1,45 +1,16 @@
-/* Collapsed coach button */
-.teacher-collapsed {
-  position: fixed;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: rgba(18, 28, 34, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 50%;
-  width: 44px;
-  height: 44px;
-  font-size: 21px;
-  cursor: pointer;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
-  z-index: 100;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-}
-
-.teacher-collapsed:hover {
-  transform: translateY(-50%) scale(1.08);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
-}
-
 .teacher-panel {
   position: fixed;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: min(300px, calc(100vw - 24px));
-  max-height: min(72vh, 560px);
+  top: 44px;
+  right: 0;
+  width: 320px;
+  height: calc(100dvh - 44px);
   overflow-y: auto;
   box-sizing: border-box;
-  background: rgba(21, 31, 39, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 12px;
-  padding: 12px;
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.48);
-  z-index: 100;
+  background: rgba(21, 31, 39, 0.98);
+  border-left: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 14px;
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.28);
+  z-index: 95;
   font-size: 13px;
   line-height: 1.4;
   backdrop-filter: blur(12px);
@@ -50,8 +21,8 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 10px;
-  margin-bottom: 10px;
-  padding-bottom: 9px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -78,7 +49,7 @@
   height: 28px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 18px;
+  font-size: 17px;
   line-height: 1;
 }
 
@@ -203,40 +174,46 @@
   line-height: 1.4;
 }
 
-@media (max-width: 700px) {
-  .teacher-collapsed {
-    top: 54px;
-    right: 8px;
-    transform: none;
-    width: 40px;
-    height: 40px;
-    font-size: 19px;
-  }
-
-  .teacher-collapsed:hover {
-    transform: scale(1.06);
-  }
-
+/* On narrow screens the Coach uses only the empty center of the table.
+   It is intentionally compact so it never covers any player's hand. */
+@media (max-width: 900px) {
   .teacher-panel {
-    top: 52px;
-    left: 8px;
-    right: 8px;
-    transform: none;
-    width: auto;
-    max-height: 34vh;
+    top: 50%;
+    left: 50%;
+    right: auto;
+    width: min(294px, calc(100vw - 96px));
+    height: auto;
+    max-height: 38dvh;
+    transform: translate(-50%, -50%);
+    border: 1px solid rgba(255, 255, 255, 0.18);
     border-radius: 10px;
     padding: 10px;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.48);
   }
 
-  .teacher-subtitle {
+  .teacher-header {
+    margin-bottom: 8px;
+    padding-bottom: 7px;
+  }
+
+  .teacher-subtitle,
+  .rec-help,
+  .stats,
+  .alternatives {
     display: none;
+  }
+
+  .recommendation {
+    margin-bottom: 8px;
+    padding: 8px;
+  }
+
+  .reasoning {
+    margin-bottom: 0;
   }
 
   .reasoning-text {
     font-size: 12px;
-  }
-
-  .stats {
-    margin-bottom: 8px;
+    line-height: 1.35;
   }
 }
