@@ -3,9 +3,7 @@ import process from 'node:process';
 import { chromium } from 'playwright';
 
 const previewUrl = process.env.PREVIEW_URL;
-if (!previewUrl) {
-  throw new Error('PREVIEW_URL is required');
-}
+if (!previewUrl) throw new Error('PREVIEW_URL is required');
 
 const scenarios = [
   { name: 'desktop', viewport: { width: 1440, height: 900 }, isMobile: false },
@@ -15,6 +13,9 @@ const scenarios = [
 await fs.mkdir('qa-screenshots', { recursive: true });
 const browser = await chromium.launch();
 const failures = [];
+
+const overlaps = (a, b) =>
+  a && b && a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
 
 for (const scenario of scenarios) {
   const context = await browser.newContext({
@@ -41,18 +42,10 @@ for (const scenario of scenarios) {
     const overflow = await page.evaluate(() => ({
       width: document.documentElement.scrollWidth,
       viewport: window.innerWidth,
-      height: document.documentElement.scrollHeight,
-      viewportHeight: window.innerHeight,
     }));
     if (overflow.width > overflow.viewport + 2) {
       failures.push(`${scenario.name}: horizontal overflow ${overflow.width}px > ${overflow.viewport}px`);
     }
-
-    const coach = page.locator('.teacher-panel');
-    if (!(await coach.isVisible())) failures.push(`${scenario.name}: coach panel is not visible on initial load`);
-
-    const turnCoach = page.locator('.turn-coach');
-    await turnCoach.waitFor({ state: 'visible', timeout: 15_000 });
 
     const playableTile = page.locator('.player-hand.bottom .hand-tile.clickable').first();
     await playableTile.waitFor({ state: 'visible', timeout: 15_000 });
@@ -62,9 +55,17 @@ for (const scenario of scenarios) {
       failures.push(`${scenario.name}: clicking a human tile did not select it`);
     }
 
-    const instruction = await turnCoach.textContent();
-    if (!instruction?.includes('Tap the selected tile again')) {
+    const instruction = page.locator('.human-action-row .hand-instruction');
+    await instruction.waitFor({ state: 'visible', timeout: 5_000 });
+    const instructionText = await instruction.textContent();
+    if (!instructionText?.includes('tap again to discard')) {
       failures.push(`${scenario.name}: selection confirmation instruction is missing`);
+    }
+
+    const instructionBox = await instruction.boundingBox();
+    const handBox = await page.locator('.player-hand.bottom .hand-composite').boundingBox();
+    if (overlaps(instructionBox, handBox)) {
+      failures.push(`${scenario.name}: discard instruction overlaps the human hand`);
     }
 
     const recommended = page.locator('.player-hand.bottom .tile.recommended').first();
@@ -73,10 +74,25 @@ for (const scenario of scenarios) {
       if (!tipContent.includes('TIP')) failures.push(`${scenario.name}: recommended tile is missing TIP marker`);
     }
 
-    await page.screenshot({
-      path: `qa-screenshots/${scenario.name}.png`,
-      fullPage: true,
-    });
+    await page.screenshot({ path: `qa-screenshots/${scenario.name}.png`, fullPage: true });
+
+    const teacherToggle = page.locator('.teacher-toggle-btn');
+    await teacherToggle.waitFor({ state: 'visible', timeout: 5_000 });
+    if (!(await page.locator('.teacher-panel').isVisible())) await teacherToggle.click();
+
+    const coach = page.locator('.teacher-panel');
+    await coach.waitFor({ state: 'visible', timeout: 5_000 });
+    await page.waitForTimeout(250);
+
+    const coachBox = await coach.boundingBox();
+    for (const position of ['top', 'bottom', 'left', 'right']) {
+      const playerBox = await page.locator(`.player-hand.${position}`).boundingBox();
+      if (overlaps(coachBox, playerBox)) {
+        failures.push(`${scenario.name}: coach overlaps ${position} player area`);
+      }
+    }
+
+    await page.screenshot({ path: `qa-screenshots/${scenario.name}-coach.png`, fullPage: true });
 
     if (runtimeErrors.length) failures.push(...runtimeErrors.map(error => `${scenario.name}: ${error}`));
   } catch (error) {
