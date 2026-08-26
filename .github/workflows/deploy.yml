@@ -22,6 +22,9 @@ jobs:
       deployments: write
       pull-requests: read
     name: Deploy to Cloudflare Pages
+    outputs:
+      preview_url: ${{ steps.preview.outputs.url }}
+      deployment_url: ${{ steps.preview.outputs.immutable_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -57,17 +60,69 @@ jobs:
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
           command: pages deploy dist --project-name=hkos --branch=${{ steps.branch.outputs.name }}
 
-      - name: Publish preview URLs
+      - name: Normalize preview URLs
+        id: preview
         shell: bash
         env:
           DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
           ALIAS_URL: ${{ steps.deploy.outputs.pages-deployment-alias-url }}
         run: |
+          normalize_url() {
+            local value="$1"
+            value="${value%% *}"
+            if [ -n "$value" ] && [[ "$value" != http://* ]] && [[ "$value" != https://* ]]; then
+              value="https://$value"
+            fi
+            printf '%s' "$value"
+          }
+
+          immutable_url="$(normalize_url "$DEPLOYMENT_URL")"
+          alias_url="$(normalize_url "$ALIAS_URL")"
+          preview_url="${alias_url:-$immutable_url}"
+
+          echo "immutable_url=$immutable_url" >> "$GITHUB_OUTPUT"
+          echo "url=$preview_url" >> "$GITHUB_OUTPUT"
+
           {
             echo "### Cloudflare Pages deployment"
             echo ""
-            echo "- Immutable deployment: $DEPLOYMENT_URL"
-            if [ -n "$ALIAS_URL" ]; then
-              echo "- Stable branch preview: $ALIAS_URL"
-            fi
+            echo "- Preview: $preview_url"
+            echo "- Immutable deployment: $immutable_url"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  browser-qa:
+    if: github.event_name == 'pull_request'
+    needs: deploy
+    runs-on: ubuntu-latest
+    name: Browser QA (desktop + iPhone)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install app dependencies
+        run: npm ci
+
+      - name: Install Playwright for QA
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+
+      - name: Run preview browser QA
+        env:
+          PREVIEW_URL: ${{ needs.deploy.outputs.preview_url }}
+        run: node scripts/preview-qa.mjs
+
+      - name: Upload browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-browser-screenshots
+          path: qa-screenshots/
+          if-no-files-found: warn
+          retention-days: 14
