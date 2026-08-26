@@ -1,11 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../store';
-import { Wind } from '../types/tile';
+import { Tile as TileType, Wind } from '../types/tile';
 import { PlayerHand } from './PlayerHand';
 import { TeacherPanel } from './TeacherPanel';
 import { GameStateBar } from './GameStateBar';
+import { KnowledgeOverlay, KnowledgeRequest } from './KnowledgeOverlay';
 import { Tile } from './Tile';
 import './GameTable.css';
+import './ResponsiveScale.css';
 
 // Position mapping: Human (East) at bottom, playing counter-clockwise
 // East (bottom) -> South (left) -> West (top) -> North (right)
@@ -37,6 +39,7 @@ export const GameTable: React.FC = () => {
     dealerSeat,
     winner,
   } = useGameStore();
+  const [knowledge, setKnowledge] = useState<KnowledgeRequest | null>(null);
 
   useEffect(() => {
     if (phase === 'waiting') {
@@ -64,6 +67,9 @@ export const GameTable: React.FC = () => {
     north: players.north.score,
   };
 
+  const openHand = (handName: string) => setKnowledge({ kind: 'hand', handName });
+  const openTile = (tile: TileType) => setKnowledge({ kind: 'tile', tile });
+
   return (
     <div className={`game-table ${showTeacher ? 'teacher-open' : ''}`}>
       <GameStateBar
@@ -74,9 +80,18 @@ export const GameTable: React.FC = () => {
         dealerSeat={dealerSeat}
         showTeacher={showTeacher}
         onToggleTeacher={toggleTeacher}
+        onOpenRulebook={() => setKnowledge({ kind: 'rulebook' })}
       />
 
-      <div className="table-center" />
+      <div className="table-center">
+        <TeacherPanel
+          suggestion={teacherSuggestion}
+          isVisible={showTeacher}
+          onToggle={toggleTeacher}
+          onOpenHand={openHand}
+          onOpenTile={openTile}
+        />
+      </div>
 
       {winds.map(wind => {
         const isHuman = players[wind].isHuman;
@@ -92,7 +107,7 @@ export const GameTable: React.FC = () => {
             isHuman={isHuman}
             seat={wind}
             selectedTile={isHuman ? selectedTile : null}
-            recommendedTile={isHuman ? teacherSuggestion?.recommendedTile : null}
+            recommendedTile={isHuman && showTeacher ? teacherSuggestion?.recommendedTile : null}
             onTileClick={isHuman ? handleTileClick : undefined}
             onSort={
               isHuman && phase === 'playing' && currentTurn === wind && turnPhase === 'discard'
@@ -104,18 +119,16 @@ export const GameTable: React.FC = () => {
         );
       })}
 
-      <TeacherPanel
-        suggestion={teacherSuggestion}
-        isVisible={showTeacher}
-        onToggle={toggleTeacher}
-      />
-
       {claimOffer && (
         <ActionOverlay claimOffer={claimOffer} resolveClaim={resolveClaim} />
       )}
 
       {phase === 'finished' && (
         <GameOverOverlay winner={winner} onRestart={initGame} />
+      )}
+
+      {knowledge && (
+        <KnowledgeOverlay initial={knowledge} onClose={() => setKnowledge(null)} />
       )}
     </div>
   );
