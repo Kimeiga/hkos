@@ -9,6 +9,8 @@ interface GameStateBarProps {
     scores: Record<Wind, number>;
     roundWind: Wind;
     dealerSeat: Wind;
+    showTeacher: boolean;
+    onToggleTeacher: () => void;
 }
 
 export const GameStateBar: React.FC<GameStateBarProps> = ({
@@ -17,20 +19,16 @@ export const GameStateBar: React.FC<GameStateBarProps> = ({
     scores,
     roundWind,
     dealerSeat,
+    showTeacher,
+    onToggleTeacher,
 }) => {
-    // Get auto-play state at the top level (Rules of Hooks)
     const isAutoPlay = useGameStore(state => state.isAutoPlay);
     const toggleAutoPlay = useGameStore(state => state.toggleAutoPlay);
 
-    // Order logic: Counter-Clockwise from Dealer.
-    // Sequence: East, South, West, North.
-    // If Dealer is East: E -> S -> W -> N.
-    // If Dealer is South: S -> W -> N -> E.
     const windOrder: Wind[] = ['east', 'south', 'west', 'north'];
 
     const sortedPlayers = useMemo(() => {
         const startIndex = windOrder.indexOf(dealerSeat);
-        // Create new array starting from dealer
         return [
             ...windOrder.slice(startIndex),
             ...windOrder.slice(0, startIndex)
@@ -46,7 +44,6 @@ export const GameStateBar: React.FC<GameStateBarProps> = ({
 
     return (
         <div className="game-state-bar">
-            {/* Left Widget: Global State */}
             <div className="global-state">
                 <div className="round-indicator" title="Prevailing Wind">
                     {windLabels[roundWind]}
@@ -57,7 +54,6 @@ export const GameStateBar: React.FC<GameStateBarProps> = ({
                 </div>
             </div>
 
-            {/* Center: Controls */}
             <div className="center-controls">
                 <button
                     className={`auto-play-btn ${isAutoPlay ? 'active' : ''}`}
@@ -66,9 +62,18 @@ export const GameStateBar: React.FC<GameStateBarProps> = ({
                 >
                     {isAutoPlay ? 'AUTO ON' : 'AUTO OFF'}
                 </button>
+                <button
+                    className={`teacher-toggle-btn ${showTeacher ? 'active' : ''}`}
+                    onClick={onToggleTeacher}
+                    title={showTeacher ? 'Close Coach' : 'Open Coach'}
+                    aria-label={showTeacher ? 'Close Mahjong coach' : 'Open Mahjong coach'}
+                    aria-pressed={showTeacher}
+                >
+                    <span className="teacher-toggle-icon">🎓</span>
+                    <span className="teacher-toggle-label">COACH</span>
+                </button>
             </div>
 
-            {/* Right Widget: Player Status */}
             <div className="player-strip">
                 {sortedPlayers.map((wind) => {
                     const isDealer = wind === dealerSeat;
