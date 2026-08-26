@@ -14,79 +14,86 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
   isVisible,
   onToggle,
 }) => {
-  // Collapsed state: just a small clickable hat emoji
   if (!isVisible) {
     return (
-      <button className="teacher-collapsed" onClick={onToggle} title="Open Teacher">
+      <button
+        className="teacher-collapsed"
+        onClick={onToggle}
+        title="Open coach"
+        aria-label="Open Mahjong coach"
+      >
         🎓
       </button>
     );
   }
 
   return (
-    <div className="teacher-panel visible">
+    <aside className="teacher-panel visible" aria-label="Mahjong coach">
       <div className="teacher-header">
-        <h3>🎓 Teacher</h3>
-        <button className="toggle-btn" onClick={onToggle}>
+        <div>
+          <h3>🎓 Coach</h3>
+          <div className="teacher-subtitle">Why a move is good, not just what to click</div>
+        </div>
+        <button className="toggle-btn" onClick={onToggle} aria-label="Collapse coach">
           −
         </button>
       </div>
 
-      {suggestion && (
+      {suggestion ? (
         <div className="teacher-content">
           <div className="recommendation">
-            <div className="rec-label">Recommended Discard:</div>
+            <div>
+              <div className="rec-label">Best discard</div>
+              <div className="rec-help">The same tile is marked green in your hand.</div>
+            </div>
             <div className="rec-tile">
               <Tile tile={suggestion.recommendedTile} isRecommended />
             </div>
           </div>
-          
+
           <div className="reasoning">
-            <div className="reasoning-label">Strategy:</div>
+            <div className="reasoning-label">Why this move</div>
             <div className="reasoning-text">{suggestion.reasoning}</div>
           </div>
-          
+
           <div className="stats">
             <div className="stat">
-              <span className="stat-label">Target Hand:</span>
+              <span className="stat-label">Plan</span>
               <span className="stat-value">{suggestion.targetHand}</span>
             </div>
             <div className="stat">
-              <span className="stat-label">Fan Potential:</span>
-              <span className="stat-value fan">{suggestion.fanPotential} Fan</span>
+              <span className="stat-label">Fan potential</span>
+              <span className="stat-value fan">{suggestion.fanPotential} fan</span>
             </div>
             <div className="stat">
-              <span className="stat-label">Improving Tiles:</span>
+              <span className="stat-label">Improving tiles (est.)</span>
               <span className="stat-value">{suggestion.tilesNeeded}</span>
             </div>
           </div>
-          
+
           {suggestion.alternativeMoves.length > 0 && (
             <div className="alternatives">
-              <div className="alt-label">Alternatives:</div>
+              <div className="alt-label">Other reasonable discards</div>
               <div className="alt-list">
-                {suggestion.alternativeMoves.slice(0, 2).map((alt, i) => (
-                  <div key={i} className="alt-item">
+                {suggestion.alternativeMoves.slice(0, 2).map((alt, index) => (
+                  <div key={index} className="alt-item">
                     <Tile tile={alt.tile} isHint />
-                    <span className="alt-reason">{alt.fanPotential} Fan</span>
+                    <span className="alt-reason">{alt.fanPotential} fan</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
         </div>
-      )}
-      
-      {!suggestion && (
+      ) : (
         <div className="teacher-content">
           <div className="no-suggestion">
-            Waiting for your turn to discard...
+            The coach will explain a discard when it is your turn.
           </div>
         </div>
       )}
-    </div>
+    </aside>
   );
 };
 
 export default TeacherPanel;
-
