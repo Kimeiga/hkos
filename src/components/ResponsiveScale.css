@@ -1,8 +1,9 @@
 /* Fluid board scale: keep the existing iPhone size as the floor, then grow
-   continuously from BOTH viewport dimensions. Breakpoints below only change
-   layout topology; they do not select tile sizes. */
+   continuously from BOTH dimensions of the ACTUAL game-table container.
+   Breakpoints below only change layout topology; they do not select tile sizes. */
 .game-table {
-  --tile-w: clamp(32px, min(5.5vw, 7.2dvh), 72px);
+  container-type: size;
+  --tile-w: clamp(32px, min(5.5cqw, 7.2cqh), 72px);
   --tile-h: calc(var(--tile-w) * 1.3125);
   --ai-tile-w: max(28px, calc(var(--tile-w) * 0.84));
   --ai-tile-h: calc(var(--ai-tile-w) * 1.2857);
