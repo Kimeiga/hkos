@@ -21,18 +21,14 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
 }) => {
   if (!isVisible) return null;
 
-  const fanLabel = suggestion
-    ? suggestion.fanPotential > 0
-      ? `${suggestion.fanPotential} fan`
-      : '0 fan by itself'
-    : '';
+  const fanLabel = suggestion ? `${suggestion.fanPotential} fan` : '';
 
   return (
     <aside className="teacher-panel visible" aria-label="Mahjong coach">
       <div className="teacher-header">
         <div>
           <h3>🎓 Coach</h3>
-          <div className="teacher-subtitle">Why a move is good, not just what to click</div>
+          <div className="teacher-subtitle">Why this helps</div>
         </div>
         <button className="toggle-btn" onClick={onToggle} aria-label="Close coach">×</button>
       </div>
@@ -42,7 +38,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
           <div className="recommendation">
             <div>
               <div className="rec-label">Best discard</div>
-              <div className="rec-help">The same tile is marked green in your hand. Tap this tile to learn what it is.</div>
+              <div className="rec-help">Green tile = best discard.</div>
             </div>
             <div className="rec-tile">
               <Tile
@@ -56,11 +52,11 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
           <div className="reasoning">
             <div className="reasoning-label">Why this move</div>
             <div className="reasoning-text">
-              Moves toward{' '}
+              Toward{' '}
               <button className="inline-rule-link" onClick={() => onOpenHand(suggestion.targetHand)}>
                 {suggestion.targetHand}
-              </button>{' '}
-              ({fanLabel}). {suggestion.tilesNeeded} estimated improving copies.
+              </button>
+              {' · '}{suggestion.tilesNeeded} est. improving copies
             </div>
           </div>
 
@@ -72,20 +68,20 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
               </button>
             </div>
             <div className="stat">
-              <span className="stat-label">Fan potential</span>
+              <span className="stat-label">Fan</span>
               <button className="stat-link fan" onClick={() => onOpenHand(suggestion.targetHand)}>
                 {fanLabel}
               </button>
             </div>
             <div className="stat">
-              <span className="stat-label">Improving copies (rough est.)</span>
+              <span className="stat-label">Improve</span>
               <span className="stat-value">{suggestion.tilesNeeded}</span>
             </div>
           </div>
 
           {suggestion.alternativeMoves.length > 0 && (
             <div className="alternatives">
-              <div className="alt-label">Other reasonable discards</div>
+              <div className="alt-label">Other discards</div>
               <div className="alt-list">
                 {suggestion.alternativeMoves.slice(0, 2).map((alt, index) => (
                   <button
@@ -104,7 +100,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
         </div>
       ) : (
         <div className="teacher-content">
-          <div className="no-suggestion">The coach will explain a discard when it is your turn.</div>
+          <div className="no-suggestion">Coach suggestions appear on your discard turn.</div>
         </div>
       )}
     </aside>

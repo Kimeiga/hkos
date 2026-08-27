@@ -18,6 +18,10 @@
   backdrop-filter: blur(12px);
 }
 
+.teacher-copy-mobile {
+  display: none;
+}
+
 .teacher-header {
   display: flex;
   justify-content: space-between;
@@ -222,7 +226,63 @@
     transform: translate(-50%, -50%);
     border: 1px solid rgba(255, 255, 255, 0.18);
     border-radius: 10px;
-    padding: 10px;
+    padding: 9px;
     box-shadow: 0 14px 36px rgba(0, 0, 0, 0.48);
+  }
+
+  .teacher-copy-desktop {
+    display: none;
+  }
+
+  .teacher-copy-mobile {
+    display: inline;
+  }
+
+  .teacher-header {
+    margin-bottom: 8px;
+    padding-bottom: 7px;
+  }
+
+  .teacher-header h3 {
+    font-size: 14px;
+  }
+
+  .recommendation {
+    gap: 8px;
+    margin-bottom: 8px;
+    padding: 8px;
+  }
+
+  .rec-help {
+    max-width: 150px;
+    margin-top: 2px;
+    line-height: 1.2;
+  }
+
+  .reasoning {
+    margin-bottom: 8px;
+  }
+
+  .reasoning-text {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .stats {
+    gap: 4px;
+    margin-bottom: 8px;
+    padding: 7px 8px;
+  }
+
+  .stat {
+    font-size: 11px;
+  }
+
+  .alternatives {
+    padding-top: 7px;
+  }
+
+  .alt-list {
+    gap: 10px;
   }
 }
