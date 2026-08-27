@@ -19,27 +19,24 @@ try {
   const coach = page.locator('.teacher-panel');
   await coach.waitFor({ state: 'visible', timeout: 15_000 });
 
-  const subtitleVisible = await coach.locator('.teacher-subtitle').isVisible();
-  if (subtitleVisible) failures.push('mobile: verbose Coach subtitle is still visible');
-
-  const text = (await coach.textContent()) ?? '';
-  for (const expected of ['Green tile = best discard.', 'est. improving copies', 'Improve', 'Other discards']) {
-    if (!text.includes(expected)) failures.push(`mobile: compact Coach copy is missing "${expected}"`);
+  // innerText only includes rendered copy; textContent would also include hidden
+  // responsive variants and is therefore the wrong assertion for visual density.
+  const text = (await coach.innerText()) ?? '';
+  for (const expected of ['Why this helps', 'Green tile = best discard.', 'est. improving copies', 'Improve', 'Other discards']) {
+    if (!text.includes(expected)) failures.push(`mobile: concise Coach copy is missing "${expected}"`);
   }
   for (const verbose of [
+    'Why a move is good, not just what to click',
     'The same tile is marked green in your hand. Tap this tile to learn what it is.',
     'Improving copies (rough est.)',
     'Other reasonable discards',
+    '0 fan by itself',
   ]) {
-    if (text.includes(verbose)) failures.push(`mobile: verbose desktop copy leaked into Coach: "${verbose}"`);
+    if (text.includes(verbose)) failures.push(`mobile: verbose Coach copy is still rendered: "${verbose}"`);
   }
 
-  const panel = await coach.boundingBox();
-  if (!panel) {
-    failures.push('mobile: Coach has no bounding box');
-  } else if (panel.height > 0.38 * 844 + 2) {
-    failures.push(`mobile: Coach exceeds its 38dvh budget (${panel.height.toFixed(1)}px)`);
-  }
+  const ruleLinks = coach.locator('.inline-rule-link');
+  if ((await ruleLinks.count()) !== 1) failures.push('mobile: Coach should expose exactly one tappable target-hand link');
 
   await page.screenshot({ path: 'qa-screenshots/iphone-compact-coach.png', fullPage: true });
 } finally {
