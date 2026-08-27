@@ -157,6 +157,87 @@
   box-shadow: 0 0 0 2px rgba(255, 224, 107, 0.1);
 }
 
+.terminology-section {
+  margin: 0 0 clamp(16px, 2.2vmin, 24px);
+  padding: clamp(10px, 1.5vmin, 14px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.terminology-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 9px;
+}
+
+.terminology-heading > span {
+  color: #f1f6f3;
+  font-size: clamp(12px, 1.4vmin, 15px);
+  font-weight: 850;
+}
+
+.terminology-heading small {
+  color: #8fa298;
+  font-size: clamp(9px, 1.05vmin, 11px);
+  text-align: right;
+}
+
+.terminology-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.terminology-card {
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.terminology-card > strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #f3f7f5;
+  font-size: clamp(12px, 1.35vmin, 14px);
+}
+
+.terminology-languages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  color: #cfe0d6;
+  font-size: clamp(11px, 1.2vmin, 13px);
+  line-height: 1.3;
+}
+
+.terminology-languages span {
+  white-space: nowrap;
+}
+
+.terminology-languages b {
+  color: #8ea69a;
+  font-size: 9px;
+  letter-spacing: 0.4px;
+}
+
+.terminology-languages i {
+  color: #9eb2a7;
+  font-style: normal;
+  font-weight: 500;
+}
+
+.terminology-card p {
+  margin: 7px 0 0;
+  color: #9eb0a6;
+  font-size: clamp(10px, 1.08vmin, 12px);
+  line-height: 1.4;
+}
+
 .rulebook-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
@@ -257,6 +338,22 @@
   color: #ffe06b;
   font-weight: 800;
   white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .terminology-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .terminology-heading small {
+    text-align: left;
+  }
+
+  .terminology-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
