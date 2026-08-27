@@ -14,54 +14,73 @@
     1px 1px 2px rgba(0, 0, 0, 0.3),
     inset 0 0 1px rgba(255, 255, 255, 0.5);
   overflow: hidden;
+  --tile-face-w: 32px;
+  --tile-face-h: 42px;
+  --tile-pad: 2px;
 }
 
 .tile-normal {
   width: 32px;
   height: 42px;
-  padding: 2px;
-}
-
-.tile-normal.tile-rotated {
-  width: 42px;
-  height: 32px;
+  padding: var(--tile-pad);
+  --tile-face-w: 32px;
+  --tile-face-h: 42px;
 }
 
 .tile-hint {
   width: 28px;
   height: 36px;
-  padding: 2px;
-}
-
-.tile-hint.tile-rotated {
-  width: 36px;
-  height: 28px;
+  padding: var(--tile-pad);
+  --tile-face-w: 28px;
+  --tile-face-h: 36px;
 }
 
 .tile-rotated-90,
 .tile-rotated-270 {
   width: 42px;
   height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.tile-rotated-90 .tile-image {
-  transform: rotate(90deg);
-  width: 32px;
-  height: 42px;
-}
-
-.tile-rotated-270 .tile-image {
-  transform: rotate(270deg);
-  width: 32px;
-  height: 42px;
 }
 
 .tile-rotated-180 {
   width: 32px;
   height: 42px;
+}
+
+/*
+ * Tile art has one portrait coordinate system regardless of seat orientation.
+ * Unrotated faces fill the tile's content box. 90°/270° faces are sized in
+ * portrait coordinates first, then rotated into the landscape container.
+ * This avoids the old effect where the outer side tile grew but its artwork
+ * remained at the legacy 32×42 image size.
+ */
+.tile-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.tile-rotated-90 .tile-image,
+.tile-rotated-270 .tile-image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(var(--tile-face-w) - var(--tile-pad) - var(--tile-pad));
+  height: calc(var(--tile-face-h) - var(--tile-pad) - var(--tile-pad));
+  max-width: none;
+  max-height: none;
+  transform-origin: center;
+}
+
+.tile-rotated-90 .tile-image {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.tile-rotated-270 .tile-image {
+  transform: translate(-50%, -50%) rotate(270deg);
 }
 
 .tile-rotated-180 .tile-image {
@@ -70,11 +89,6 @@
 
 .tile-rotated-180 .tile-back {
   transform: rotate(180deg);
-}
-
-.tile-image {
-  width: 100%;
-  object-fit: contain;
 }
 
 .tile-back {

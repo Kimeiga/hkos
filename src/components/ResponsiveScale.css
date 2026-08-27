@@ -6,11 +6,24 @@
   --tile-h: calc(var(--tile-w) * 1.3125);
   --ai-tile-w: max(28px, calc(var(--tile-w) * 0.84));
   --ai-tile-h: calc(var(--ai-tile-w) * 1.2857);
+  --tile-pad: clamp(1px, 0.2vmin, 4px);
   --board-gap: clamp(2px, 0.6vmin, 9px);
   --tile-gap: clamp(1px, 0.2vmin, 3px);
   --topbar-h: clamp(44px, min(6.5vw, 7dvh), 60px);
   --coach-rail-w: clamp(320px, 24vw, 400px);
   padding-top: var(--topbar-h);
+}
+
+/* Every face keeps portrait dimensions in CSS variables. Rotated tiles swap
+   only the OUTER box; Tile.css rotates the portrait face into that box. */
+.tile-normal {
+  --tile-face-w: var(--tile-w);
+  --tile-face-h: var(--tile-h);
+}
+
+.tile-hint {
+  --tile-face-w: calc(var(--tile-w) * 0.8);
+  --tile-face-h: calc(var(--tile-h) * 0.8);
 }
 
 /* Primary/human, exposed, and discard tile geometry. */
@@ -23,12 +36,11 @@
 .player-hand.top .discard-pile .tile {
   width: var(--tile-w) !important;
   height: var(--tile-h) !important;
-  padding: clamp(1px, 0.2vmin, 4px);
+  padding: var(--tile-pad);
 }
 
-.tile-normal.tile-rotated,
-.tile-rotated-90,
-.tile-rotated-270,
+.tile-normal.tile-rotated-90,
+.tile-normal.tile-rotated-270,
 .player-hand.left .meld .tile,
 .player-hand.left .flower-tile,
 .player-hand.left .discard-pile .tile,
@@ -37,26 +49,22 @@
 .player-hand.right .discard-pile .tile {
   width: var(--tile-h) !important;
   height: var(--tile-w) !important;
-  padding: clamp(1px, 0.2vmin, 4px);
+  padding: var(--tile-pad);
 }
 
-.tile-rotated-180 {
+.tile-normal.tile-rotated-180 {
   width: var(--tile-w) !important;
   height: var(--tile-h) !important;
-}
-
-.tile-rotated-90 .tile-image,
-.tile-rotated-270 .tile-image {
-  width: var(--tile-w);
-  height: var(--tile-h);
 }
 
 .tile-hint {
   width: calc(var(--tile-w) * 0.8) !important;
   height: calc(var(--tile-h) * 0.8) !important;
+  padding: var(--tile-pad);
 }
 
-.tile-hint.tile-rotated {
+.tile-hint.tile-rotated-90,
+.tile-hint.tile-rotated-270 {
   width: calc(var(--tile-h) * 0.8) !important;
   height: calc(var(--tile-w) * 0.8) !important;
 }

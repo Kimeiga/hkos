@@ -19,6 +19,17 @@ const failures = [];
 const overlaps = (a, b) =>
   a && b && a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
 
+const measureFaceCoverage = async tileLocator => tileLocator.evaluate(el => {
+  const image = el.querySelector('.tile-image');
+  if (!image) return null;
+  const tileRect = el.getBoundingClientRect();
+  const imageRect = image.getBoundingClientRect();
+  return {
+    width: imageRect.width / tileRect.width,
+    height: imageRect.height / tileRect.height,
+  };
+});
+
 for (const scenario of scenarios) {
   const context = await browser.newContext({
     viewport: scenario.viewport,
@@ -63,6 +74,53 @@ for (const scenario of scenarios) {
     const [minWidth, maxWidth] = scenario.tileRange;
     if (computedTileWidth < minWidth || computedTileWidth > maxWidth) {
       failures.push(`${scenario.name}: computed human tile width ${computedTileWidth.toFixed(1)}px outside expected fluid range ${minWidth}-${maxWidth}px`);
+    }
+
+    // The artwork itself must use nearly all of the tile face. This catches the
+    // regression where the outer tile scaled but the SVG stayed at legacy size.
+    const portraitCoverage = await measureFaceCoverage(playableTile);
+    if (!portraitCoverage || portraitCoverage.width < 0.86 || portraitCoverage.height < 0.86) {
+      failures.push(`${scenario.name}: portrait tile artwork does not fill its face (${portraitCoverage ? `${portraitCoverage.width.toFixed(2)}×${portraitCoverage.height.toFixed(2)}` : 'missing image'})`);
+    }
+
+    // Deterministic orientation probe: clone a real face-up tile, rotate it 90°
+    // using production CSS, and make sure its artwork fills the landscape face
+    // by the same proportion. This does not depend on an AI discard existing.
+    const rotatedCoverage = await playableTile.evaluate(el => {
+      const table = el.closest('.game-table');
+      if (!table) return null;
+      const clone = el.cloneNode(true);
+      clone.classList.remove('selected');
+      clone.classList.add('tile-rotated-90');
+      clone.setAttribute('aria-hidden', 'true');
+      clone.style.position = 'absolute';
+      clone.style.left = '50%';
+      clone.style.top = '50%';
+      clone.style.opacity = '0';
+      clone.style.pointerEvents = 'none';
+      table.appendChild(clone);
+      const image = clone.querySelector('.tile-image');
+      const tileRect = clone.getBoundingClientRect();
+      const imageRect = image?.getBoundingClientRect();
+      clone.remove();
+      if (!imageRect) return null;
+      return {
+        width: imageRect.width / tileRect.width,
+        height: imageRect.height / tileRect.height,
+      };
+    });
+    if (!rotatedCoverage || rotatedCoverage.width < 0.86 || rotatedCoverage.height < 0.86) {
+      failures.push(`${scenario.name}: rotated tile artwork does not fill its face (${rotatedCoverage ? `${rotatedCoverage.width.toFixed(2)}×${rotatedCoverage.height.toFixed(2)}` : 'missing image'})`);
+    }
+
+    if (portraitCoverage && rotatedCoverage) {
+      const coverageDelta = Math.max(
+        Math.abs(portraitCoverage.width - rotatedCoverage.width),
+        Math.abs(portraitCoverage.height - rotatedCoverage.height),
+      );
+      if (coverageDelta > 0.05) {
+        failures.push(`${scenario.name}: portrait/rotated artwork scale differs too much (Δ=${coverageDelta.toFixed(2)})`);
+      }
     }
 
     const clippedTiles = await page.evaluate(() => {
