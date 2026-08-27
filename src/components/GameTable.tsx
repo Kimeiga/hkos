@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../store';
 import { Tile as TileType, Wind } from '../types/tile';
+import { MAHJONG_CALL_TERMS, MahjongCallKey } from '../data/mahjongTerms';
 import { PlayerHand } from './PlayerHand';
 import { TeacherPanel } from './TeacherPanel';
 import { GameStateBar } from './GameStateBar';
@@ -144,6 +145,21 @@ interface ClaimOffer {
   chowSets?: import('../types/tile').Tile[][];
 }
 
+const CallTermLabel: React.FC<{ termKey: MahjongCallKey; suffix?: string }> = ({ termKey, suffix }) => {
+  const term = MAHJONG_CALL_TERMS[termKey];
+  return (
+    <span className="call-term">
+      <span className="call-term-primary">
+        {term.primary}{suffix ? ` ${suffix}` : ''}
+      </span>
+      <span className="call-term-languages" aria-hidden="true">
+        <span><b>粵</b> {term.cantonese.script} <i>{term.cantonese.jyutping}</i></span>
+        <span><b>普</b> {term.mandarin.script} <i>{term.mandarin.pinyin}</i></span>
+      </span>
+    </span>
+  );
+};
+
 const ActionOverlay: React.FC<{
   claimOffer: ClaimOffer;
   resolveClaim: (action: 'pass' | 'pong' | 'kong' | 'chow' | 'win', data?: import('../types/tile').Tile[]) => void;
@@ -159,25 +175,42 @@ const ActionOverlay: React.FC<{
       </div>
       <div className="action-buttons">
         {claimOffer.canWin && (
-          <button className="action-btn win" onClick={() => resolveClaim('win')}>
-            Sik / Win
+          <button
+            className="action-btn win"
+            onClick={() => resolveClaim('win')}
+            aria-label="Sik or Win. Cantonese 食糊 sik6 wu4. Mandarin 和牌 hé pái."
+          >
+            <CallTermLabel termKey="win" />
           </button>
         )}
         {claimOffer.canPong && (
-          <button className="action-btn pong" onClick={() => resolveClaim('pong')}>
-            Pung
+          <button
+            className="action-btn pong"
+            onClick={() => resolveClaim('pong')}
+            aria-label="Pung. Cantonese 碰 pung3. Mandarin 碰 pèng."
+          >
+            <CallTermLabel termKey="pung" />
           </button>
         )}
         {claimOffer.canKong && (
-          <button className="action-btn kong" onClick={() => resolveClaim('kong')}>
-            Gong
+          <button
+            className="action-btn kong"
+            onClick={() => resolveClaim('kong')}
+            aria-label="Gong or Kong. Cantonese 槓 gong3. Mandarin 杠 gàng."
+          >
+            <CallTermLabel termKey="kong" />
           </button>
         )}
         {claimOffer.canChow && (
           <div className="chow-options">
             {claimOffer.chowSets?.map((set: import('../types/tile').Tile[], index: number) => (
-              <button key={index} className="action-btn chow" onClick={() => resolveClaim('chow', set)}>
-                Sheung {set[0].value}-{set[1].value}
+              <button
+                key={index}
+                className="action-btn chow"
+                onClick={() => resolveClaim('chow', set)}
+                aria-label={`Sheung or Chow ${set[0].value}-${set[1].value}. Cantonese 上 soeng5. Mandarin 吃 chī.`}
+              >
+                <CallTermLabel termKey="chow" suffix={`${set[0].value}-${set[1].value}`} />
               </button>
             ))}
           </div>
