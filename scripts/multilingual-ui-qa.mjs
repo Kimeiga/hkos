@@ -100,8 +100,8 @@ for (const scenario of [
     }
 
     const panelBox = await panel.boundingBox();
-    assert(Boolean(panelBox) && panelBox.left >= -1 && panelBox.right <= scenario.viewport.width + 1, `${scenario.name}: multilingual claim panel overflows horizontally`);
-    assert(Boolean(panelBox) && panelBox.top >= -1 && panelBox.bottom <= scenario.viewport.height + 1, `${scenario.name}: multilingual claim panel overflows vertically`);
+    assert(Boolean(panelBox) && panelBox.x >= -1 && panelBox.x + panelBox.width <= scenario.viewport.width + 1, `${scenario.name}: multilingual claim panel overflows horizontally`);
+    assert(Boolean(panelBox) && panelBox.y >= -1 && panelBox.y + panelBox.height <= scenario.viewport.height + 1, `${scenario.name}: multilingual claim panel overflows vertically`);
 
     await page.screenshot({ path: `qa-screenshots/${scenario.name}-multilingual-claims.png`, fullPage: true });
   } catch (error) {
