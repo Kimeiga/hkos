@@ -108,7 +108,7 @@ jobs:
     if: needs.deploy.outputs.is_preview == 'true'
     needs: deploy
     runs-on: ubuntu-latest
-    name: Browser QA (responsive + claims + terms)
+    name: Browser QA (responsive + claims + terms + Coach)
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -134,6 +134,7 @@ jobs:
           node scripts/preview-qa.mjs
           node scripts/claim-regression-qa.mjs
           node scripts/multilingual-ui-qa.mjs
+          node scripts/mobile-coach-copy-qa.mjs
 
       - name: Upload browser screenshots
         if: always()
