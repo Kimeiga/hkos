@@ -59,19 +59,14 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
 
           <div className="reasoning">
             <div className="reasoning-label">Why this move</div>
-            <div className="reasoning-text teacher-copy-desktop">
-              Moves toward{' '}
-              <button className="inline-rule-link" onClick={() => onOpenHand(suggestion.targetHand)}>
-                {suggestion.targetHand}
-              </button>{' '}
-              ({fanLabel}). {suggestion.tilesNeeded} estimated improving copies.
-            </div>
-            <div className="reasoning-text teacher-copy-mobile">
-              Toward{' '}
+            <div className="reasoning-text">
+              <span className="teacher-copy-desktop">Moves toward </span>
+              <span className="teacher-copy-mobile">Toward </span>
               <button className="inline-rule-link" onClick={() => onOpenHand(suggestion.targetHand)}>
                 {suggestion.targetHand}
               </button>
-              {' · '}{suggestion.tilesNeeded} est. improving copies
+              <span className="teacher-copy-desktop"> ({fanLabel}). {suggestion.tilesNeeded} estimated improving copies.</span>
+              <span className="teacher-copy-mobile"> · {suggestion.tilesNeeded} est. improving copies</span>
             </div>
           </div>
 
