@@ -63,7 +63,10 @@ for (const scenario of scenarios) {
 
     const teacherToggle = page.locator('.teacher-toggle-btn');
     await teacherToggle.waitFor({ state: 'visible', timeout: 5_000 });
-    if (await page.locator('.teacher-panel').isVisible()) await teacherToggle.click();
+    if (await page.locator('.teacher-panel').isVisible()) {
+      await teacherToggle.click();
+      await page.waitForTimeout(300); // game-table width transition must settle before measuring container units
+    }
 
     const playableTile = page.locator('.player-hand.bottom .hand-tile.clickable').first();
     await playableTile.waitFor({ state: 'visible', timeout: 15_000 });
@@ -156,7 +159,19 @@ for (const scenario of scenarios) {
     await teacherToggle.click();
     const coach = page.locator('.teacher-panel');
     await coach.waitFor({ state: 'visible', timeout: 5_000 });
-    await page.waitForTimeout(250);
+    await page.waitForTimeout(300); // let the desktop side rail/container resize settle
+
+    // At 1440px the Coach rail consumes meaningful board width. Container-query
+    // sizing should respond by shrinking the tiles, unlike the old viewport-only formula.
+    if (scenario.name === 'desktop') {
+      const coachOpenTileWidth = await playableTile.evaluate(el => parseFloat(getComputedStyle(el).width));
+      if (!(coachOpenTileWidth < computedTileWidth - 2)) {
+        failures.push(`desktop: Coach-open tile scale did not respond to board width (${computedTileWidth.toFixed(1)}px -> ${coachOpenTileWidth.toFixed(1)}px)`);
+      }
+      if (coachOpenTileWidth < 56) {
+        failures.push(`desktop: Coach-open tiles became too small (${coachOpenTileWidth.toFixed(1)}px)`);
+      }
+    }
 
     const coachBox = await coach.boundingBox();
     for (const position of ['top', 'bottom', 'left', 'right']) {
