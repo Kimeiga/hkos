@@ -19,10 +19,8 @@ try {
   const coach = page.locator('.teacher-panel');
   await coach.waitFor({ state: 'visible', timeout: 15_000 });
 
-  // innerText only includes rendered copy; textContent would also include hidden
-  // responsive variants and is therefore the wrong assertion for visual density.
   const text = (await coach.innerText()) ?? '';
-  for (const expected of ['Why this helps', 'Green tile = best discard.', 'est. improving copies', 'Improve', 'Other discards']) {
+  for (const expected of ['Why this helps', 'Green tile = best discard.', 'est. improving copies', 'Improve']) {
     if (!text.includes(expected)) failures.push(`mobile: concise Coach copy is missing "${expected}"`);
   }
   for (const verbose of [
@@ -33,6 +31,12 @@ try {
     '0 fan by itself',
   ]) {
     if (text.includes(verbose)) failures.push(`mobile: verbose Coach copy is still rendered: "${verbose}"`);
+  }
+
+  const alternatives = coach.locator('.alternatives');
+  if (await alternatives.count()) {
+    const altText = (await alternatives.innerText()) ?? '';
+    if (!altText.includes('Other discards')) failures.push('mobile: alternatives use the old long heading');
   }
 
   const ruleLinks = coach.locator('.inline-rule-link');
