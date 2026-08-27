@@ -108,7 +108,7 @@ jobs:
     if: needs.deploy.outputs.is_preview == 'true'
     needs: deploy
     runs-on: ubuntu-latest
-    name: Browser QA (responsive)
+    name: Browser QA (responsive + claims)
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -130,7 +130,9 @@ jobs:
       - name: Run preview browser QA
         env:
           PREVIEW_URL: ${{ needs.deploy.outputs.preview_url }}
-        run: node scripts/preview-qa.mjs
+        run: |
+          node scripts/preview-qa.mjs
+          node scripts/claim-regression-qa.mjs
 
       - name: Upload browser screenshots
         if: always()
