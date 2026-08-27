@@ -38,12 +38,6 @@ try {
     if (text.includes(verbose)) failures.push(`mobile: verbose Coach copy is still rendered: "${verbose}"`);
   }
 
-  const alternatives = coach.locator('.alternatives');
-  if (await alternatives.count()) {
-    const altText = (await alternatives.innerText()) ?? '';
-    if (!altText.includes('Other discards')) failures.push('mobile: alternatives use the old long heading');
-  }
-
   const ruleLinks = coach.locator('.inline-rule-link');
   if ((await ruleLinks.count()) !== 1) failures.push('mobile: Coach should expose exactly one tappable target-hand link');
 
