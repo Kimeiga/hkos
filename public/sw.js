@@ -1,81 +1,72 @@
-const CACHE_NAME = 'hkos-mahjong-v2';
-const urlsToCache = [
-  '/',
-  '/index.html',
+const CACHE_NAME = 'hkos-mahjong-v3';
+const OFFLINE_SHELL = '/index.html';
+const PRECACHE_URLS = [
+  OFFLINE_SHELL,
   '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png'
 ];
 
-// Install event - cache essential files
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
-      })
-      .catch((err) => {
-        console.log('Cache install failed:', err);
-      })
+      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .catch((error) => console.log('Cache install failed:', error))
   );
   self.skipWaiting();
 });
 
-// Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    caches.keys().then((cacheNames) => Promise.all(
+      cacheNames
+        .filter((cacheName) => cacheName !== CACHE_NAME)
+        .map((cacheName) => caches.delete(cacheName))
+    ))
   );
   self.clients.claim();
 });
 
-// Fetch event - serve from cache, fall back to network
 self.addEventListener('fetch', (event) => {
-  // Only handle http/https requests (skip chrome-extension, etc.)
-  if (!event.request.url.startsWith('http')) {
+  const { request } = event;
+  if (request.method !== 'GET' || !request.url.startsWith('http')) return;
+
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+
+  // App navigations must prefer the network. A cache-first index.html can pin
+  // users to an old Vite asset graph indefinitely after a new deployment.
+  if (request.mode === 'navigate') {
+    event.respondWith((async () => {
+      try {
+        const response = await fetch(request);
+        if (response?.ok) {
+          const cache = await caches.open(CACHE_NAME);
+          await cache.put(OFFLINE_SHELL, response.clone());
+        }
+        return response;
+      } catch {
+        return (await caches.match(OFFLINE_SHELL)) || Response.error();
+      }
+    })());
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Return cached response if found
-        if (response) {
-          return response;
-        }
-        // Otherwise fetch from network
-        return fetch(event.request).then((response) => {
-          // Don't cache non-successful responses, non-GET requests, or cross-origin
-          if (!response || response.status !== 200 || event.request.method !== 'GET') {
-            return response;
-          }
-          // Only cache same-origin requests
-          if (new URL(event.request.url).origin !== location.origin) {
-            return response;
-          }
-          // Clone the response
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-          return response;
-        });
-      })
-      .catch(() => {
-        // Return offline fallback if available
-        return caches.match('/');
-      })
-  );
-});
+  // Hashed Vite assets, tile SVGs, icons, and other static files are safe to
+  // serve cache-first. New deployments reference new hashed asset URLs.
+  event.respondWith((async () => {
+    const cached = await caches.match(request);
+    if (cached) return cached;
 
+    try {
+      const response = await fetch(request);
+      if (response?.ok) {
+        const cache = await caches.open(CACHE_NAME);
+        await cache.put(request, response.clone());
+      }
+      return response;
+    } catch {
+      return Response.error();
+    }
+  })());
+});

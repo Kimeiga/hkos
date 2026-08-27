@@ -1,18 +1,21 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../store';
-import { Wind } from '../types/tile';
+import { Tile as TileType, Wind } from '../types/tile';
 import { PlayerHand } from './PlayerHand';
 import { TeacherPanel } from './TeacherPanel';
 import { GameStateBar } from './GameStateBar';
+import { KnowledgeOverlay, KnowledgeRequest } from './KnowledgeOverlay';
+import { Tile } from './Tile';
 import './GameTable.css';
+import './ResponsiveScale.css';
 
 // Position mapping: Human (East) at bottom, playing counter-clockwise
 // East (bottom) -> South (left) -> West (top) -> North (right)
 const positionMap: Record<Wind, 'bottom' | 'left' | 'top' | 'right'> = {
-  east: 'bottom',   // Human/Dealer
-  south: 'left',    // Next player (counter-clockwise)
-  west: 'top',      // Across from human
-  north: 'right',   // Previous player
+  east: 'bottom',
+  south: 'left',
+  west: 'top',
+  north: 'right',
 };
 
 export const GameTable: React.FC = () => {
@@ -28,7 +31,6 @@ export const GameTable: React.FC = () => {
     showTeacher,
     selectTile,
     discardTile,
-    drawTile,
     toggleTeacher,
     initGame,
     sortHand,
@@ -37,36 +39,25 @@ export const GameTable: React.FC = () => {
     dealerSeat,
     winner,
   } = useGameStore();
+  const [knowledge, setKnowledge] = useState<KnowledgeRequest | null>(null);
 
-  // Start game on mount
   useEffect(() => {
     if (phase === 'waiting') {
       initGame();
     }
   }, [phase, initGame]);
 
-  // Find the human player's seat
-  const humanSeat = (Object.keys(players) as Wind[]).find(w => players[w].isHuman) || 'east';
+  const humanSeat = (Object.keys(players) as Wind[]).find(wind => players[wind].isHuman) || 'east';
 
-  // Handle tile click for human player
   const handleTileClick = (tile: typeof selectedTile) => {
     if (!tile) return;
 
     if (selectedTile?.instanceId === tile.instanceId) {
-      // Double-click to discard
       discardTile(humanSeat, tile);
     } else {
       selectTile(tile);
     }
   };
-
-  // Handle draw action (unused but kept for potential future use)
-  const _handleDraw = () => {
-    if (currentTurn === humanSeat && turnPhase === 'draw') {
-      drawTile(humanSeat);
-    }
-  };
-  void _handleDraw; // Suppress unused warning
 
   const winds: Wind[] = ['south', 'east', 'north', 'west'];
   const scores = {
@@ -76,23 +67,32 @@ export const GameTable: React.FC = () => {
     north: players.north.score,
   };
 
+  const openHand = (handName: string) => setKnowledge({ kind: 'hand', handName });
+  const openTile = (tile: TileType) => setKnowledge({ kind: 'tile', tile });
+
   return (
-    <div className="game-table">
+    <div className={`game-table ${showTeacher ? 'teacher-open' : ''}`}>
       <GameStateBar
         wallCount={wall.length}
         currentTurn={currentTurn}
         scores={scores}
         roundWind={roundWind}
         dealerSeat={dealerSeat}
+        showTeacher={showTeacher}
+        onToggleTeacher={toggleTeacher}
+        onOpenRulebook={() => setKnowledge({ kind: 'rulebook' })}
       />
 
-      {/* DiscardRiver Removed - Integrated into PlayerHand */}
-
       <div className="table-center">
-        {/* Center is now truly empty, used for effects or dead wall if needed */}
+        <TeacherPanel
+          suggestion={teacherSuggestion}
+          isVisible={showTeacher}
+          onToggle={toggleTeacher}
+          onOpenHand={openHand}
+          onOpenTile={openTile}
+        />
       </div>
 
-      {/* Player hands in their positions */}
       {winds.map(wind => {
         const isHuman = players[wind].isHuman;
         return (
@@ -107,7 +107,7 @@ export const GameTable: React.FC = () => {
             isHuman={isHuman}
             seat={wind}
             selectedTile={isHuman ? selectedTile : null}
-            recommendedTile={isHuman ? teacherSuggestion?.recommendedTile : null}
+            recommendedTile={isHuman && showTeacher ? teacherSuggestion?.recommendedTile : null}
             onTileClick={isHuman ? handleTileClick : undefined}
             onSort={
               isHuman && phase === 'playing' && currentTurn === wind && turnPhase === 'discard'
@@ -119,23 +119,6 @@ export const GameTable: React.FC = () => {
         );
       })}
 
-      {/* Floating Sort Button Removed - Integrated into PlayerHand */}
-
-      <TeacherPanel
-        suggestion={teacherSuggestion}
-        isVisible={showTeacher}
-        onToggle={toggleTeacher}
-      />
-
-      {/* Instructions Removed */}
-
-      {/* Action Panel (Pong/Kong/Chow/Win) */}
-      {showTeacher && teacherSuggestion && currentTurn === 'south' && turnPhase === 'discard' && (
-        /* Keeping existing teacher logic but maybe move it? kept for now */
-        null
-      )}
-
-      {/* Real Action Panel driven by claimOffer */}
       {claimOffer && (
         <ActionOverlay claimOffer={claimOffer} resolveClaim={resolveClaim} />
       )}
@@ -143,11 +126,14 @@ export const GameTable: React.FC = () => {
       {phase === 'finished' && (
         <GameOverOverlay winner={winner} onRestart={initGame} />
       )}
+
+      {knowledge && (
+        <KnowledgeOverlay initial={knowledge} onClose={() => setKnowledge(null)} />
+      )}
     </div>
   );
 };
 
-// Sub-components to ensure clean render tree and avoid hook issues
 interface ClaimOffer {
   tile: import('../types/tile').Tile;
   fromPlayer: Wind;
@@ -163,35 +149,41 @@ const ActionOverlay: React.FC<{
   resolveClaim: (action: 'pass' | 'pong' | 'kong' | 'chow' | 'win', data?: import('../types/tile').Tile[]) => void;
 }> = ({ claimOffer, resolveClaim }) => (
   <div className="action-panel-overlay">
-    <div className="action-panel">
-      <h3>Claim Tile?</h3>
+    <div className="action-panel" role="dialog" aria-modal="true" aria-labelledby="claim-title">
+      <div className="claim-context">
+        <Tile tile={claimOffer.tile} />
+        <div>
+          <h3 id="claim-title">Claim this discard?</h3>
+          <p>Discarded by {claimOffer.fromPlayer.toUpperCase()}</p>
+        </div>
+      </div>
       <div className="action-buttons">
         {claimOffer.canWin && (
           <button className="action-btn win" onClick={() => resolveClaim('win')}>
-            WIN (Hu)
+            Sik / Win
           </button>
         )}
         {claimOffer.canPong && (
           <button className="action-btn pong" onClick={() => resolveClaim('pong')}>
-            PONG
+            Pung
           </button>
         )}
         {claimOffer.canKong && (
           <button className="action-btn kong" onClick={() => resolveClaim('kong')}>
-            KONG
+            Gong
           </button>
         )}
         {claimOffer.canChow && (
           <div className="chow-options">
-            {claimOffer.chowSets?.map((set: import('../types/tile').Tile[], i: number) => (
-              <button key={i} className="action-btn chow" onClick={() => resolveClaim('chow', set)}>
-                CHOW {set[0].value}-{set[1].value}
+            {claimOffer.chowSets?.map((set: import('../types/tile').Tile[], index: number) => (
+              <button key={index} className="action-btn chow" onClick={() => resolveClaim('chow', set)}>
+                Sheung {set[0].value}-{set[1].value}
               </button>
             ))}
           </div>
         )}
         <button className="action-btn pass" onClick={() => resolveClaim('pass')}>
-          PASS
+          Pass
         </button>
       </div>
     </div>
@@ -212,4 +204,3 @@ const GameOverOverlay: React.FC<{
 );
 
 export default GameTable;
-

@@ -1,0 +1,283 @@
+/* Fluid board scale: keep the existing iPhone size as the floor, then grow
+   continuously from the ACTUAL game-table width and the usable viewport height.
+   Breakpoints below only change layout topology; they do not select tile sizes. */
+.game-table {
+  container-type: inline-size;
+  --tile-w: clamp(32px, min(5.5cqw, 7.2dvh), 72px);
+  --tile-h: calc(var(--tile-w) * 1.3125);
+  --ai-tile-w: max(28px, calc(var(--tile-w) * 0.84));
+  --ai-tile-h: calc(var(--ai-tile-w) * 1.2857);
+  --tile-pad: clamp(1px, 0.2vmin, 4px);
+  --board-gap: clamp(2px, 0.6vmin, 9px);
+  --tile-gap: clamp(1px, 0.2vmin, 3px);
+  --topbar-h: clamp(44px, min(6.5vw, 7dvh), 60px);
+  --coach-rail-w: clamp(320px, 24vw, 400px);
+  padding-top: var(--topbar-h);
+}
+
+/* Every face keeps portrait dimensions in CSS variables. Rotated tiles swap
+   only the OUTER box; Tile.css rotates the portrait face into that box. */
+.tile-normal {
+  --tile-face-w: var(--tile-w);
+  --tile-face-h: var(--tile-h);
+}
+
+.tile-hint {
+  --tile-face-w: calc(var(--tile-w) * 0.8);
+  --tile-face-h: calc(var(--tile-h) * 0.8);
+}
+
+/* Primary/human, exposed, and discard tile geometry. */
+.tile-normal,
+.player-hand.bottom .meld .tile,
+.flower-tile,
+.player-hand.bottom .discard-pile .tile,
+.hand-tile,
+.player-hand.top .meld .tile,
+.player-hand.top .discard-pile .tile {
+  width: var(--tile-w) !important;
+  height: var(--tile-h) !important;
+  padding: var(--tile-pad);
+}
+
+.tile-normal.tile-rotated-90,
+.tile-normal.tile-rotated-270,
+.player-hand.left .meld .tile,
+.player-hand.left .flower-tile,
+.player-hand.left .discard-pile .tile,
+.player-hand.right .meld .tile,
+.player-hand.right .flower-tile,
+.player-hand.right .discard-pile .tile {
+  width: var(--tile-h) !important;
+  height: var(--tile-w) !important;
+  padding: var(--tile-pad);
+}
+
+.tile-normal.tile-rotated-180 {
+  width: var(--tile-w) !important;
+  height: var(--tile-h) !important;
+}
+
+.tile-hint {
+  width: calc(var(--tile-w) * 0.8) !important;
+  height: calc(var(--tile-h) * 0.8) !important;
+  padding: var(--tile-pad);
+}
+
+.tile-hint.tile-rotated-90,
+.tile-hint.tile-rotated-270 {
+  width: calc(var(--tile-h) * 0.8) !important;
+  height: calc(var(--tile-w) * 0.8) !important;
+}
+
+/* Opponent concealed hands grow too, but more gently. This prevents large
+   desktop tiles from turning the side walls into giant columns. */
+.player-hand.top .hand-tile {
+  width: var(--ai-tile-w) !important;
+  height: var(--ai-tile-h) !important;
+  padding: max(1px, 0.12vmin);
+}
+
+.player-hand.left .hand-tile,
+.player-hand.right .hand-tile {
+  width: var(--ai-tile-h) !important;
+  height: var(--ai-tile-w) !important;
+  padding: max(1px, 0.12vmin);
+}
+
+/* Scale the spaces around the tiles too, otherwise the board feels sparse as
+   the pieces grow. */
+.player-hand {
+  gap: var(--board-gap);
+}
+
+.discard-pile {
+  gap: var(--tile-gap);
+  padding: var(--board-gap);
+  min-height: var(--tile-h);
+  max-width: calc(var(--tile-w) * 10 + var(--tile-gap) * 10 + var(--board-gap) * 2);
+}
+
+.meld {
+  gap: var(--tile-gap);
+}
+
+.melds {
+  gap: var(--board-gap);
+}
+
+.flowers {
+  gap: var(--tile-gap);
+  padding: calc(var(--board-gap) * 0.5);
+}
+
+/* Fluid table chrome and type. */
+.game-state-bar {
+  height: var(--topbar-h);
+  padding-inline: clamp(6px, 1.2vmin, 16px);
+}
+
+.round-indicator {
+  width: clamp(30px, min(4.4vw, 5.2dvh), 44px);
+  height: clamp(30px, min(4.4vw, 5.2dvh), 44px);
+  font-size: clamp(17px, 2.5vmin, 25px);
+}
+
+.deck-count {
+  font-size: clamp(11px, min(1.15vw, 1.65dvh), 15px);
+  padding: clamp(2px, 0.4vmin, 5px) clamp(4px, 0.8vmin, 9px);
+}
+
+.status-player {
+  width: clamp(32px, min(4.4vw, 5.2dvh), 46px);
+  height: clamp(36px, min(4.8vw, 5.8dvh), 50px);
+}
+
+.status-wind {
+  font-size: clamp(16px, min(1.8vw, 2.6dvh), 24px);
+}
+
+.status-score {
+  font-size: clamp(9px, min(0.95vw, 1.35dvh), 13px);
+}
+
+.auto-play-btn,
+.teacher-toggle-btn,
+.rulebook-toggle-btn {
+  min-height: clamp(26px, min(3.7vw, 4.2dvh), 34px);
+  padding: clamp(3px, 0.5vmin, 6px) clamp(6px, 0.9vmin, 12px);
+  font-size: clamp(9px, min(0.95vw, 1.35dvh), 12px);
+}
+
+.rulebook-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.72);
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.rulebook-toggle-btn:hover {
+  border-color: rgba(255, 255, 255, 0.45);
+  color: white;
+}
+
+.human-action-row {
+  min-height: clamp(28px, 4dvh, 38px);
+  gap: clamp(5px, 0.7vmin, 10px);
+}
+
+.hand-instruction,
+.sort-button-integrated {
+  font-size: clamp(10px, min(1vw, 1.65dvh), 14px);
+}
+
+.tile.recommended::after {
+  font-size: clamp(6px, min(0.65vw, 0.95dvh), 10px);
+  padding: 1px clamp(2px, 0.3vmin, 4px);
+}
+
+/* Coach type is intentionally a little larger on desktop while retaining the
+   current compact phone floor. */
+.teacher-panel {
+  font-size: clamp(13px, min(1.15vw, 1.75dvh), 17px);
+}
+
+.teacher-header h3 {
+  font-size: clamp(15px, min(1.35vw, 2.1dvh), 20px);
+}
+
+.teacher-subtitle,
+.rec-help,
+.rec-label,
+.reasoning-label,
+.alt-label,
+.alt-reason {
+  font-size: clamp(10px, min(0.9vw, 1.3dvh), 13px);
+}
+
+.reasoning-text {
+  font-size: clamp(12px, min(1.1vw, 1.8dvh), 17px);
+}
+
+.stat {
+  font-size: clamp(12px, min(1vw, 1.55dvh), 15px);
+}
+
+/* The Coach is a true side rail when there is room. This breakpoint changes
+   topology only. Tile sizes remain on the single fluid formula above. */
+@media (min-width: 901px) {
+  .game-table.teacher-open {
+    width: calc(100vw - var(--coach-rail-w));
+  }
+
+  .game-table.teacher-open .game-state-bar {
+    width: calc(100vw - var(--coach-rail-w));
+  }
+
+  .teacher-panel {
+    top: var(--topbar-h);
+    width: var(--coach-rail-w);
+    height: calc(100dvh - var(--topbar-h));
+  }
+}
+
+/* On compact layouts, the Coach is contained by the center grid cell. ALL
+   information remains present, and the ENTIRE card scrolls as one surface. */
+@media (max-width: 900px) {
+  .teacher-panel {
+    position: absolute;
+    inset: clamp(4px, 0.8vmin, 8px);
+    top: clamp(4px, 0.8vmin, 8px);
+    left: clamp(4px, 0.8vmin, 8px);
+    right: clamp(4px, 0.8vmin, 8px);
+    width: auto;
+    height: auto;
+    max-height: calc(100% - clamp(8px, 1.6vmin, 16px));
+    transform: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    padding: clamp(9px, 1.4vmin, 12px);
+  }
+
+  .teacher-subtitle,
+  .rec-help,
+  .alternatives {
+    display: block;
+  }
+
+  .stats,
+  .alt-list {
+    display: flex;
+  }
+
+  .teacher-panel .stats {
+    margin-bottom: 10px;
+  }
+
+  .teacher-panel .alternatives {
+    padding-top: 9px;
+  }
+}
+
+/* Compact top-bar labels disappear only when the bar cannot fit. This is a
+   content-density fallback, not a tile-size breakpoint. */
+@media (max-width: 700px) {
+  .rulebook-toggle-btn,
+  .teacher-toggle-btn {
+    width: 28px;
+    padding: 0;
+  }
+
+  .rulebook-toggle-label,
+  .teacher-toggle-label {
+    display: none;
+  }
+}

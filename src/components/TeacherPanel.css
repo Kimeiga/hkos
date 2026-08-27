@@ -1,159 +1,183 @@
-/* Collapsed state - just a floating emoji button */
-.teacher-collapsed {
-  position: fixed;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: linear-gradient(145deg, #2c3e50, #1a252f);
-  border: 1px solid #4a6785;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  font-size: 20px;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-  z-index: 100;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-}
-
-.teacher-collapsed:hover {
-  transform: translateY(-50%) scale(1.1);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
-}
-
-/* Expanded state */
 .teacher-panel {
   position: fixed;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: linear-gradient(145deg, #2c3e50, #1a252f);
-  border: 1px solid #4a6785;
-  border-radius: 8px;
-  padding: 10px;
-  min-width: 200px;
-  max-width: 220px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-  z-index: 100;
-  transition: all 0.3s ease;
-  font-size: 11px;
+  right: 0;
+  top: 44px;
+  width: 320px;
+  height: calc(100dvh - 44px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  box-sizing: border-box;
+  background: rgba(21, 31, 39, 0.98);
+  border-left: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 14px;
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.28);
+  z-index: 95;
+  font-size: 13px;
+  line-height: 1.4;
+  backdrop-filter: blur(12px);
 }
 
 .teacher-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-  padding-bottom: 6px;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .teacher-header h3 {
   margin: 0;
-  color: #ffd700;
-  font-size: 13px;
+  color: #ffe06b;
+  font-size: 15px;
+}
+
+.teacher-subtitle {
+  margin-top: 2px;
+  max-width: 220px;
+  color: #96a3ad;
+  font-size: 10px;
+  line-height: 1.3;
 }
 
 .toggle-btn {
+  flex: 0 0 auto;
   background: rgba(255, 255, 255, 0.1);
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   color: #fff;
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 20px;
   line-height: 1;
 }
 
 .toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .teacher-content {
-  color: #e0e0e0;
+  color: #edf1f3;
 }
 
 .recommendation {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-  padding: 8px;
-  background: rgba(76, 175, 80, 0.15);
-  border-radius: 6px;
-  border: 1px solid rgba(76, 175, 80, 0.3);
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 10px;
+  background: rgba(76, 175, 80, 0.14);
+  border-radius: 8px;
+  border: 1px solid rgba(105, 220, 119, 0.35);
+}
+
+.rec-label,
+.reasoning-label,
+.alt-label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
 }
 
 .rec-label {
+  color: #8ee595;
+}
+
+.rec-help {
+  margin-top: 3px;
+  color: #a8b5bd;
   font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #4caf50;
+  line-height: 1.3;
+}
+
+.rec-tile {
+  flex: 0 0 auto;
+}
+
+.rec-tile .tile.clickable {
+  cursor: help;
 }
 
 .reasoning {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
-.reasoning-label {
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #888;
-  margin-bottom: 2px;
+.reasoning-label,
+.alt-label {
+  color: #a7b2ba;
+  margin-bottom: 4px;
 }
 
 .reasoning-text {
-  font-size: 11px;
-  line-height: 1.3;
+  color: #f1f4f5;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.inline-rule-link,
+.stat-link {
+  padding: 0;
+  border: 0;
+  border-bottom: 1px dashed rgba(255, 224, 107, 0.62);
+  background: transparent;
+  color: #ffe06b;
+  font: inherit;
+  font-weight: 800;
+  cursor: help;
+}
+
+.inline-rule-link:hover,
+.stat-link:hover {
+  color: #fff2a5;
+  border-bottom-style: solid;
 }
 
 .stats {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 10px;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
 }
 
 .stat {
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 12px;
 }
 
 .stat-label {
-  color: #888;
+  color: #a7b2ba;
 }
 
-.stat-value {
-  font-weight: bold;
+.stat-value,
+.stat-link {
+  color: #f4f6f7;
+  font-weight: 750;
+  text-align: right;
 }
 
-.stat-value.fan {
-  color: #ffd700;
+.stat-link.fan {
+  color: #ffe06b;
 }
 
 .alternatives {
-  padding-top: 12px;
+  padding-top: 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.alt-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: #888;
-  margin-bottom: 8px;
 }
 
 .alt-list {
   display: flex;
-  gap: 12px;
+  gap: 14px;
 }
 
 .alt-item {
@@ -163,15 +187,42 @@
   gap: 4px;
 }
 
+.alt-item-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: help;
+}
+
+.alt-item-button:hover .tile {
+  outline: 1px solid rgba(255, 224, 107, 0.6);
+}
+
 .alt-reason {
   font-size: 10px;
-  color: #888;
+  color: #a7b2ba;
 }
 
 .no-suggestion {
   text-align: center;
-  color: #666;
-  font-style: italic;
-  padding: 20px;
+  color: #a7b2ba;
+  padding: 14px 8px;
+  line-height: 1.4;
 }
 
+@media (max-width: 900px) {
+  .teacher-panel {
+    top: 50%;
+    left: 50%;
+    right: auto;
+    width: min(294px, calc(100vw - 96px));
+    height: auto;
+    max-height: 38dvh;
+    transform: translate(-50%, -50%);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 10px;
+    padding: 10px;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.48);
+  }
+}

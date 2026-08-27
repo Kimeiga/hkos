@@ -1,5 +1,6 @@
 import React from 'react';
 import { TeacherSuggestion } from '../types/game';
+import { Tile as TileType } from '../types/tile';
 import { Tile } from './Tile';
 import './TeacherPanel.css';
 
@@ -7,86 +8,107 @@ interface TeacherPanelProps {
   suggestion: TeacherSuggestion | null;
   isVisible: boolean;
   onToggle: () => void;
+  onOpenHand: (handName: string) => void;
+  onOpenTile: (tile: TileType) => void;
 }
 
 export const TeacherPanel: React.FC<TeacherPanelProps> = ({
   suggestion,
   isVisible,
   onToggle,
+  onOpenHand,
+  onOpenTile,
 }) => {
-  // Collapsed state: just a small clickable hat emoji
-  if (!isVisible) {
-    return (
-      <button className="teacher-collapsed" onClick={onToggle} title="Open Teacher">
-        🎓
-      </button>
-    );
-  }
+  if (!isVisible) return null;
+
+  const fanLabel = suggestion
+    ? suggestion.fanPotential > 0
+      ? `${suggestion.fanPotential} fan`
+      : '0 fan by itself'
+    : '';
 
   return (
-    <div className="teacher-panel visible">
+    <aside className="teacher-panel visible" aria-label="Mahjong coach">
       <div className="teacher-header">
-        <h3>🎓 Teacher</h3>
-        <button className="toggle-btn" onClick={onToggle}>
-          −
-        </button>
+        <div>
+          <h3>🎓 Coach</h3>
+          <div className="teacher-subtitle">Why a move is good, not just what to click</div>
+        </div>
+        <button className="toggle-btn" onClick={onToggle} aria-label="Close coach">×</button>
       </div>
 
-      {suggestion && (
+      {suggestion ? (
         <div className="teacher-content">
           <div className="recommendation">
-            <div className="rec-label">Recommended Discard:</div>
+            <div>
+              <div className="rec-label">Best discard</div>
+              <div className="rec-help">The same tile is marked green in your hand. Tap this tile to learn what it is.</div>
+            </div>
             <div className="rec-tile">
-              <Tile tile={suggestion.recommendedTile} isRecommended />
+              <Tile
+                tile={suggestion.recommendedTile}
+                isRecommended
+                onClick={() => onOpenTile(suggestion.recommendedTile)}
+              />
             </div>
           </div>
-          
+
           <div className="reasoning">
-            <div className="reasoning-label">Strategy:</div>
-            <div className="reasoning-text">{suggestion.reasoning}</div>
+            <div className="reasoning-label">Why this move</div>
+            <div className="reasoning-text">
+              Moves toward{' '}
+              <button className="inline-rule-link" onClick={() => onOpenHand(suggestion.targetHand)}>
+                {suggestion.targetHand}
+              </button>{' '}
+              ({fanLabel}). {suggestion.tilesNeeded} estimated improving copies.
+            </div>
           </div>
-          
+
           <div className="stats">
             <div className="stat">
-              <span className="stat-label">Target Hand:</span>
-              <span className="stat-value">{suggestion.targetHand}</span>
+              <span className="stat-label">Plan</span>
+              <button className="stat-link" onClick={() => onOpenHand(suggestion.targetHand)}>
+                {suggestion.targetHand}
+              </button>
             </div>
             <div className="stat">
-              <span className="stat-label">Fan Potential:</span>
-              <span className="stat-value fan">{suggestion.fanPotential} Fan</span>
+              <span className="stat-label">Fan potential</span>
+              <button className="stat-link fan" onClick={() => onOpenHand(suggestion.targetHand)}>
+                {fanLabel}
+              </button>
             </div>
             <div className="stat">
-              <span className="stat-label">Improving Tiles:</span>
+              <span className="stat-label">Improving copies (rough est.)</span>
               <span className="stat-value">{suggestion.tilesNeeded}</span>
             </div>
           </div>
-          
+
           {suggestion.alternativeMoves.length > 0 && (
             <div className="alternatives">
-              <div className="alt-label">Alternatives:</div>
+              <div className="alt-label">Other reasonable discards</div>
               <div className="alt-list">
-                {suggestion.alternativeMoves.slice(0, 2).map((alt, i) => (
-                  <div key={i} className="alt-item">
+                {suggestion.alternativeMoves.slice(0, 2).map((alt, index) => (
+                  <button
+                    key={index}
+                    className="alt-item alt-item-button"
+                    onClick={() => onOpenTile(alt.tile)}
+                    aria-label={`Explain ${alt.tile.id}`}
+                  >
                     <Tile tile={alt.tile} isHint />
-                    <span className="alt-reason">{alt.fanPotential} Fan</span>
-                  </div>
+                    <span className="alt-reason">{alt.fanPotential} fan</span>
+                  </button>
                 ))}
               </div>
             </div>
           )}
         </div>
-      )}
-      
-      {!suggestion && (
+      ) : (
         <div className="teacher-content">
-          <div className="no-suggestion">
-            Waiting for your turn to discard...
-          </div>
+          <div className="no-suggestion">The coach will explain a discard when it is your turn.</div>
         </div>
       )}
-    </div>
+    </aside>
   );
 };
 
 export default TeacherPanel;
-
