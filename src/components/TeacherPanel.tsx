@@ -26,13 +26,16 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
       ? `${suggestion.fanPotential} fan`
       : '0 fan by itself'
     : '';
+  const compactFanLabel = suggestion
+    ? `${suggestion.fanPotential} fan`
+    : '';
 
   return (
     <aside className="teacher-panel visible" aria-label="Mahjong coach">
       <div className="teacher-header">
         <div>
           <h3>🎓 Coach</h3>
-          <div className="teacher-subtitle">Why a move is good, not just what to click</div>
+          <div className="teacher-subtitle teacher-copy-desktop">Why a move is good, not just what to click</div>
         </div>
         <button className="toggle-btn" onClick={onToggle} aria-label="Close coach">×</button>
       </div>
@@ -42,7 +45,8 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
           <div className="recommendation">
             <div>
               <div className="rec-label">Best discard</div>
-              <div className="rec-help">The same tile is marked green in your hand. Tap this tile to learn what it is.</div>
+              <div className="rec-help teacher-copy-desktop">The same tile is marked green in your hand. Tap this tile to learn what it is.</div>
+              <div className="rec-help teacher-copy-mobile">Green tile = best discard.</div>
             </div>
             <div className="rec-tile">
               <Tile
@@ -55,12 +59,19 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
 
           <div className="reasoning">
             <div className="reasoning-label">Why this move</div>
-            <div className="reasoning-text">
+            <div className="reasoning-text teacher-copy-desktop">
               Moves toward{' '}
               <button className="inline-rule-link" onClick={() => onOpenHand(suggestion.targetHand)}>
                 {suggestion.targetHand}
               </button>{' '}
               ({fanLabel}). {suggestion.tilesNeeded} estimated improving copies.
+            </div>
+            <div className="reasoning-text teacher-copy-mobile">
+              Toward{' '}
+              <button className="inline-rule-link" onClick={() => onOpenHand(suggestion.targetHand)}>
+                {suggestion.targetHand}
+              </button>
+              {' · '}{suggestion.tilesNeeded} est. improving copies
             </div>
           </div>
 
@@ -72,20 +83,30 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
               </button>
             </div>
             <div className="stat">
-              <span className="stat-label">Fan potential</span>
+              <span className="stat-label">
+                <span className="teacher-copy-desktop">Fan potential</span>
+                <span className="teacher-copy-mobile">Fan</span>
+              </span>
               <button className="stat-link fan" onClick={() => onOpenHand(suggestion.targetHand)}>
-                {fanLabel}
+                <span className="teacher-copy-desktop">{fanLabel}</span>
+                <span className="teacher-copy-mobile">{compactFanLabel}</span>
               </button>
             </div>
             <div className="stat">
-              <span className="stat-label">Improving copies (rough est.)</span>
+              <span className="stat-label">
+                <span className="teacher-copy-desktop">Improving copies (rough est.)</span>
+                <span className="teacher-copy-mobile">Improve</span>
+              </span>
               <span className="stat-value">{suggestion.tilesNeeded}</span>
             </div>
           </div>
 
           {suggestion.alternativeMoves.length > 0 && (
             <div className="alternatives">
-              <div className="alt-label">Other reasonable discards</div>
+              <div className="alt-label">
+                <span className="teacher-copy-desktop">Other reasonable discards</span>
+                <span className="teacher-copy-mobile">Other discards</span>
+              </div>
               <div className="alt-list">
                 {suggestion.alternativeMoves.slice(0, 2).map((alt, index) => (
                   <button
