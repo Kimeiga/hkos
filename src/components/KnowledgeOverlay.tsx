@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Tile as TileType, getTileDisplayName } from '../types/tile';
+import { CORE_MAHJONG_CALLS, mahjongCallSearchText } from '../data/mahjongTerms';
 import { Tile } from './Tile';
 import { RULEBOOK_ENTRIES, RulebookEntry, findRulebookEntry } from '../data/rulebook';
 import './KnowledgeOverlay.css';
@@ -102,6 +103,12 @@ export const KnowledgeOverlay: React.FC<KnowledgeOverlayProps> = ({ initial, onC
     );
   }, [search]);
 
+  const filteredCallTerms = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return CORE_MAHJONG_CALLS;
+    return CORE_MAHJONG_CALLS.filter(term => mahjongCallSearchText(term).includes(query));
+  }, [search]);
+
   const openEntry = (entry: RulebookEntry) => setView({ kind: 'hand', handName: entry.title });
 
   const renderEntry = (entry: RulebookEntry) => (
@@ -201,14 +208,36 @@ export const KnowledgeOverlay: React.FC<KnowledgeOverlayProps> = ({ initial, onC
             <h2>Rulebook</h2>
           </div>
         </div>
-        <p className="knowledge-definition">Tap a hand, scoring rule, or concept for a beginner-friendly explanation and examples.</p>
+        <p className="knowledge-definition">Tap a hand, scoring rule, or concept for a beginner-friendly explanation and examples. Core calls also show the Cantonese term used in Hong Kong and the common Mandarin equivalent.</p>
         <input
           className="rulebook-search"
           value={search}
           onChange={event => setSearch(event.target.value)}
-          placeholder="Search hands, fan, chow, kong…"
+          placeholder="Search hand, fan, soeng5, chī, pung…"
           aria-label="Search rulebook"
         />
+
+        {filteredCallTerms.length > 0 && (
+          <section className="terminology-section" aria-label="Core Mahjong calls">
+            <div className="terminology-heading">
+              <span>Core calls</span>
+              <small>English · Cantonese (粵) · Mandarin (普)</small>
+            </div>
+            <div className="terminology-grid">
+              {filteredCallTerms.map(term => (
+                <article className="terminology-card" key={term.key}>
+                  <strong>{term.primary}</strong>
+                  <div className="terminology-languages">
+                    <span><b>粵</b> {term.cantonese.script} <i>{term.cantonese.jyutping}</i></span>
+                    <span><b>普</b> {term.mandarin.script} <i>{term.mandarin.pinyin}</i></span>
+                  </div>
+                  <p>{term.definition}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
         <div className="rulebook-grid">
           {filteredEntries.map(entry => (
             <button className="rulebook-entry" key={entry.id} onClick={() => openEntry(entry)}>
