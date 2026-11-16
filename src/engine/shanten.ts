@@ -1,173 +1,114 @@
-import { Tile, isSuitedTile, tilesSameType, sortTiles, Suit, SUITS } from '../types/tile';
-import { Meld } from '../types/meld';
-import { countTileTypes, groupTiles } from './handAnalysis';
+import { type Tile, SUITS, WINDS, DRAGONS } from '../types/tile';
+import type { Meld } from '../types/meld';
 
-// Shanten = number of tiles away from tenpai (ready to win)
-// -1 = winning hand, 0 = tenpai, 1+ = tiles needed
-
-// Calculate shanten for standard 4 melds + 1 pair hand
-export const calculateStandardShanten = (tiles: Tile[]): number => {
-  if (tiles.length === 0) return 8; // Maximum shanten
-  
-  const sorted = sortTiles(tiles.filter(t => 
-    t.category !== 'flower' && t.category !== 'season'
-  ));
-  
-  let minShanten = 8;
-  
-  // Try each tile as the pair
-  const counts = countTileTypes(sorted);
-  const processed = new Set<string>();
-  
-  for (const [id, count] of counts) {
-    if (count >= 2 && !processed.has(id)) {
-      processed.add(id);
-      const remaining = [...sorted];
-      // Remove pair
-      let removed = 0;
-      for (let i = remaining.length - 1; i >= 0 && removed < 2; i--) {
-        if (remaining[i].id === id) {
-          remaining.splice(i, 1);
-          removed++;
-        }
-      }
-      const shanten = calculateMeldsShanten(remaining, 4) - 1;
-      minShanten = Math.min(minShanten, shanten);
-    }
+// Counts for the 34 ordinary tile types (flowers/seasons are not part of a hand).
+// 0-26: bamboo, characters, dots; 27-30: winds; 31-33: dragons.
+const tileIndex = (tile: Tile): number => {
+  if (tile.suit && tile.value && tile.value >= 1 && tile.value <= 9) {
+    const suit = SUITS.indexOf(tile.suit);
+    if (suit >= 0) return suit * 9 + tile.value - 1;
   }
-  
-  // Also try without a designated pair
-  const noPairShanten = calculateMeldsShanten(sorted, 4);
-  minShanten = Math.min(minShanten, noPairShanten);
-  
-  return minShanten;
+  if (tile.category === 'wind') return 27 + WINDS.indexOf(tile.wind!);
+  if (tile.category === 'dragon') return 31 + DRAGONS.indexOf(tile.dragon!);
+  return -1;
 };
 
-// Calculate how many melds can be formed and the shanten
-const calculateMeldsShanten = (tiles: Tile[], meldsNeeded: number): number => {
-  if (tiles.length === 0) return meldsNeeded * 2;
-  if (meldsNeeded === 0) return 0;
-  
-  let maxMelds = 0;
-  let maxPartials = 0; // Partial melds (2 tiles that could become 3)
-  
-  // Recursive search for best meld extraction
-  const search = (remaining: Tile[], melds: number, partials: number): void => {
-    if (remaining.length === 0) {
-      if (melds > maxMelds || (melds === maxMelds && partials > maxPartials)) {
-        maxMelds = melds;
-        maxPartials = partials;
-      }
+const toCounts = (tiles: Tile[]): number[] => {
+  const counts = Array<number>(34).fill(0);
+  for (const tile of tiles) {
+    const index = tileIndex(tile);
+    if (index >= 0) counts[index]++;
+  }
+  return counts;
+};
+
+// Standard four-meld-and-a-pair shanten. A declared meld already counts as one
+// complete set; never subtract its count from a hand that has already shrunk.
+const standardFromCounts = (counts: number[], declaredMelds: number): number => {
+  let best = 8;
+  const visit = (start: number, melds: number, taatsu: number, pair: number): void => {
+    if (melds > 4) return;
+    let index = start;
+    while (index < 34 && counts[index] === 0) index++;
+    if (index === 34) {
+      // Extra incomplete groups cannot occupy more slots than the remaining melds.
+      best = Math.min(best, 8 - 2 * melds - Math.min(taatsu, 4 - melds) - pair);
       return;
     }
-    
-    const first = remaining[0];
-    const rest = remaining.slice(1);
-    
-    // Try to form a pung
-    const sameType = remaining.filter(t => tilesSameType(t, first));
-    if (sameType.length >= 3) {
-      const afterPung = [...remaining];
-      let removed = 0;
-      for (let i = afterPung.length - 1; i >= 0 && removed < 3; i--) {
-        if (tilesSameType(afterPung[i], first)) {
-          afterPung.splice(i, 1);
-          removed++;
+
+    const available = counts[index];
+    const suited = index < 27;
+    const rank = index % 9;
+    if (melds < 4) {
+      if (available >= 3) {
+        counts[index] -= 3;
+        visit(index, melds + 1, taatsu, pair);
+        counts[index] += 3;
+      }
+      if (suited && rank <= 6 && counts[index + 1] && counts[index + 2]) {
+        counts[index]--;
+        counts[index + 1]--;
+        counts[index + 2]--;
+        visit(index, melds + 1, taatsu, pair);
+        counts[index]++;
+        counts[index + 1]++;
+        counts[index + 2]++;
+      }
+    }
+    if (available >= 2) {
+      counts[index] -= 2;
+      if (!pair) visit(index, melds, taatsu, 1);
+      if (melds + taatsu < 4) visit(index, melds, taatsu + 1, pair);
+      counts[index] += 2;
+    }
+    if (suited && melds + taatsu < 4) {
+      for (const gap of [1, 2]) {
+        if (rank + gap <= 8 && counts[index + gap]) {
+          counts[index]--;
+          counts[index + gap]--;
+          visit(index, melds, taatsu + 1, pair);
+          counts[index]++;
+          counts[index + gap]++;
         }
       }
-      search(afterPung, melds + 1, partials);
     }
-    
-    // Try to form a chow (sequence)
-    if (isSuitedTile(first) && first.value! <= 7) {
-      const t2 = remaining.find(t => t.suit === first.suit && t.value === first.value! + 1);
-      const t3 = remaining.find(t => t.suit === first.suit && t.value === first.value! + 2);
-      if (t2 && t3) {
-        const afterChow = [...remaining];
-        const removeOne = (target: Tile) => {
-          const idx = afterChow.findIndex(t => t.instanceId === target.instanceId);
-          if (idx >= 0) afterChow.splice(idx, 1);
-        };
-        removeOne(first);
-        removeOne(t2);
-        removeOne(t3);
-        search(afterChow, melds + 1, partials);
-      }
-    }
-    
-    // Try partial melds (pair that could become pung)
-    if (sameType.length >= 2) {
-      const afterPartial = [...remaining];
-      let removed = 0;
-      for (let i = afterPartial.length - 1; i >= 0 && removed < 2; i--) {
-        if (tilesSameType(afterPartial[i], first)) {
-          afterPartial.splice(i, 1);
-          removed++;
-        }
-      }
-      search(afterPartial, melds, partials + 1);
-    }
-    
-    // Try partial chow (2 consecutive)
-    if (isSuitedTile(first) && first.value! <= 8) {
-      const t2 = remaining.find(t => t.suit === first.suit && t.value === first.value! + 1);
-      if (t2) {
-        const afterPartial = [...remaining];
-        const idx1 = afterPartial.findIndex(t => t.instanceId === first.instanceId);
-        afterPartial.splice(idx1, 1);
-        const idx2 = afterPartial.findIndex(t => t.instanceId === t2.instanceId);
-        afterPartial.splice(idx2, 1);
-        search(afterPartial, melds, partials + 1);
-      }
-    }
-    
-    // Skip this tile
-    search(rest, melds, partials);
+    counts[index]--;
+    visit(index, melds, taatsu, pair);
+    counts[index]++;
   };
-  
-  search(tiles, 0, 0);
-  
-  // Shanten = (melds needed - melds found) * 2 - partials
-  // But partials can only reduce shanten by 1 each, up to melds needed
-  const effectivePartials = Math.min(maxPartials, meldsNeeded - maxMelds);
-  return (meldsNeeded - maxMelds) * 2 - effectivePartials;
+  visit(0, declaredMelds, 0, 0);
+  return best;
 };
 
-// Calculate shanten for seven pairs
+export const calculateStandardShanten = (tiles: Tile[], declaredMelds = 0): number =>
+  standardFromCounts(toCounts(tiles), declaredMelds);
+
+// HKOS tables differ on this optional special hand; HKOS's own rulebook
+// explicitly lists seven *distinct* pairs, so a quad is not two pairs.
 export const calculateSevenPairsShanten = (tiles: Tile[]): number => {
-  const playTiles = tiles.filter(t => 
-    t.category !== 'flower' && t.category !== 'season'
-  );
-  if (playTiles.length !== 13 && playTiles.length !== 14) return 8;
-  
-  const counts = countTileTypes(playTiles);
-  let pairs = 0;
-  let singles = 0;
-  
-  for (const count of counts.values()) {
-    pairs += Math.floor(count / 2);
-    if (count % 2 === 1) singles++;
-  }
-  
-  // Need 7 pairs, shanten = 6 - pairs + singles/2
-  return 6 - pairs + Math.ceil(singles / 2);
+  const counts = toCounts(tiles);
+  const tileCount = counts.reduce((sum, n) => sum + n, 0);
+  if (tileCount !== 13 && tileCount !== 14) return 8;
+  const pairs = counts.filter(n => n >= 2).length;
+  const distinct = counts.filter(n => n > 0).length;
+  return 6 - pairs + Math.max(0, 7 - distinct);
 };
 
-// Get overall minimum shanten
+const ORPHAN_INDICES = [0, 8, 9, 17, 18, 26, 27, 28, 29, 30, 31, 32, 33];
+
+export const calculateThirteenOrphansShanten = (tiles: Tile[]): number => {
+  const counts = toCounts(tiles);
+  const tileCount = counts.reduce((sum, n) => sum + n, 0);
+  if (tileCount !== 13 && tileCount !== 14) return 13;
+  const kinds = ORPHAN_INDICES.filter(i => counts[i] > 0).length;
+  const pair = ORPHAN_INDICES.some(i => counts[i] >= 2) ? 1 : 0;
+  return 13 - kinds - pair;
+};
+
 export const calculateShanten = (hand: Tile[], melds: Meld[]): number => {
-  const exposedMeldCount = melds.filter(m => !m.isConcealed && m.type !== 'pair').length;
-  const tilesInHand = hand.filter(t => 
-    t.category !== 'flower' && t.category !== 'season'
-  );
-  
-  // If we have exposed melds, we can't do seven pairs
-  const standardShanten = calculateStandardShanten(tilesInHand) - exposedMeldCount;
-  
-  if (exposedMeldCount === 0) {
-    const sevenPairsShanten = calculateSevenPairsShanten(tilesInHand);
-    return Math.min(standardShanten, sevenPairsShanten);
-  }
-  
-  return standardShanten;
+  // All declared pungs, chows and kongs occupy one meld, concealed or not.
+  const declaredMelds = melds.filter(m => m.type !== 'pair').length;
+  const standard = calculateStandardShanten(hand, declaredMelds);
+  if (declaredMelds > 0) return standard;
+  return Math.min(standard, calculateSevenPairsShanten(hand), calculateThirteenOrphansShanten(hand));
 };
-
