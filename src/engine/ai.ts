@@ -5,6 +5,7 @@
 import { Tile, isSuitedTile, tilesSameType, Wind } from '../types/tile';
 import { Meld } from '../types/meld';
 import { calculateShanten } from './shanten';
+import { calculateVisibleUkeire, countKnownTiles } from './tileEfficiency';
 import { countTileTypes } from './handAnalysis';
 
 export type AIDifficulty = 'easy' | 'medium' | 'hard';
@@ -22,6 +23,7 @@ export interface AIContext {
   seatWind: Wind;
   roundWind: Wind;
   discards: Tile[];
+  visibleMeldTiles?: Tile[]; // Only publicly visible opponents' melds.
   wallRemaining: number;
 }
 
@@ -81,11 +83,12 @@ const shouldClaimEasy = (
 
 // MEDIUM AI
 const selectDiscardMedium = (context: AIContext): Tile => {
-  const { hand, melds } = context;
+  const { hand, melds, discards, visibleMeldTiles = [] } = context;
+  const known = countKnownTiles([...hand, ...melds.flatMap(m => m.tiles), ...discards, ...visibleMeldTiles]);
   const evaluations = hand.map(tile => {
     const handAfterDiscard = hand.filter(t => t.instanceId !== tile.instanceId);
     const shanten = calculateShanten(handAfterDiscard, melds);
-    const ukeire = calculateSimpleUkeire(handAfterDiscard, melds);
+    const ukeire = calculateVisibleUkeire(handAfterDiscard, melds, known).copies;
     return { tile, shanten, ukeire };
   });
   evaluations.sort((a, b) => {
@@ -93,25 +96,6 @@ const selectDiscardMedium = (context: AIContext): Tile => {
     return b.ukeire - a.ukeire;
   });
   return evaluations[0].tile;
-};
-
-const calculateSimpleUkeire = (hand: Tile[], melds: Meld[]): number => {
-  const currentShanten = calculateShanten(hand, melds);
-  if (currentShanten <= -1) return 0;
-  let improvingTypes = 0;
-  const checked = new Set<string>();
-  const suits = ['bamboo', 'character', 'dot'] as const;
-  for (const suit of suits) {
-    for (let value = 1; value <= 9; value++) {
-      const id = `${suit}-${value}`;
-      if (checked.has(id)) continue;
-      checked.add(id);
-      const mockTile: Tile = { id, instanceId: 'mock', category: suit, suit, value };
-      const testHand = [...hand, mockTile];
-      if (calculateShanten(testHand, melds) < currentShanten) improvingTypes++;
-    }
-  }
-  return improvingTypes;
 };
 
 const shouldClaimMedium = (
@@ -138,11 +122,12 @@ const shouldClaimMedium = (
 
 // HARD AI - Advanced strategy with defensive play and tile counting
 const selectDiscardHard = (context: AIContext): Tile => {
-  const { hand, melds, discards, wallRemaining } = context;
+  const { hand, melds, discards, visibleMeldTiles = [], wallRemaining } = context;
+  const known = countKnownTiles([...hand, ...melds.flatMap(m => m.tiles), ...discards, ...visibleMeldTiles]);
   const evaluations = hand.map(tile => {
     const handAfterDiscard = hand.filter(t => t.instanceId !== tile.instanceId);
     const shanten = calculateShanten(handAfterDiscard, melds);
-    const ukeire = calculateAdvancedUkeire(handAfterDiscard, melds, discards);
+    const ukeire = calculateVisibleUkeire(handAfterDiscard, melds, known).copies;
     const defensiveScore = calculateDefensiveScore(tile, discards);
     return { tile, shanten, ukeire, defensiveScore };
   });
@@ -156,29 +141,6 @@ const selectDiscardHard = (context: AIContext): Tile => {
     return scoreB - scoreA;
   });
   return evaluations[0].tile;
-};
-
-const calculateAdvancedUkeire = (hand: Tile[], melds: Meld[], discards: Tile[]): number => {
-  const currentShanten = calculateShanten(hand, melds);
-  if (currentShanten <= -1) return 0;
-  const visibleCounts = countTileTypes([...hand, ...discards, ...melds.flatMap(m => m.tiles)]);
-  let totalImprovingTiles = 0;
-  const checked = new Set<string>();
-  const suits = ['bamboo', 'character', 'dot'] as const;
-  for (const suit of suits) {
-    for (let value = 1; value <= 9; value++) {
-      const id = `${suit}-${value}`;
-      if (checked.has(id)) continue;
-      checked.add(id);
-      const mockTile: Tile = { id, instanceId: 'mock', category: suit, suit, value };
-      const testHand = [...hand, mockTile];
-      if (calculateShanten(testHand, melds) < currentShanten) {
-        const visible = visibleCounts.get(id) || 0;
-        totalImprovingTiles += Math.max(0, 4 - visible);
-      }
-    }
-  }
-  return totalImprovingTiles;
 };
 
 const calculateDefensiveScore = (tile: Tile, discards: Tile[]): number => {
