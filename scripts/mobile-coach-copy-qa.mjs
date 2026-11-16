@@ -22,10 +22,10 @@ try {
   // The table deals asynchronously after mount. Wait for the Coach's first real
   // suggestion instead of reading the initial no-suggestion state.
   await coach.locator('.rec-help').filter({ hasText: 'Green tile = best discard.' }).waitFor({ state: 'visible', timeout: 15_000 });
-  await coach.locator('.reasoning-text').filter({ hasText: 'est. improving copies' }).waitFor({ state: 'visible', timeout: 5_000 });
+  await coach.locator('.reasoning-text').filter({ hasText: 'unseen improving copies' }).waitFor({ state: 'visible', timeout: 5_000 });
 
   const text = (await coach.innerText()) ?? '';
-  for (const expected of ['Why this helps', 'Green tile = best discard.', 'est. improving copies', 'Improve']) {
+  for (const expected of ['Why this helps', 'Green tile = best discard.', 'unseen improving copies', 'Improve']) {
     if (!text.includes(expected)) failures.push(`mobile: concise Coach copy is missing "${expected}"`);
   }
   for (const verbose of [

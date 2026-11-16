@@ -56,7 +56,7 @@ export const TeacherPanel: React.FC<TeacherPanelProps> = ({
               <button className="inline-rule-link" onClick={() => onOpenHand(suggestion.targetHand)}>
                 {suggestion.targetHand}
               </button>
-              {' · '}{suggestion.tilesNeeded} est. improving copies
+              {' · '}{suggestion.tilesNeeded} unseen improving copies
             </div>
           </div>
 

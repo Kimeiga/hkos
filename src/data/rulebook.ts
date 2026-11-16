@@ -385,9 +385,9 @@ export const RULEBOOK_ENTRIES: RulebookEntry[] = [
     kind: 'concept',
     fan: 'Concept',
     category: 'Hand efficiency',
-    definition: 'Tiles that would improve the hand’s distance from completion after a discard. The Coach currently shows an estimated number of improving copies.',
-    requirements: ['A larger number generally means more ways to improve', 'Visible/dead copies should eventually be subtracted for an exact count'],
-    notes: ['The current Coach estimate is intentionally rough: it assumes four copies of every improving tile type remain available.'],
+    definition: 'Copies of tiles that would reduce the hand’s shanten after a discard, adjusted for tiles you can already see.',
+    requirements: ['A larger number generally means more opportunities to improve', 'Count only four copies per tile type, minus your hand, known melds, and visible discards', 'A wait with all four copies accounted for has zero available improving tiles'],
+    notes: ['These are unseen copies, not guaranteed live draws. Some may be concealed in other hands or the wall’s replacement tiles.', 'The Coach ranks shanten first, then unseen improving copies, and avoids dead waits when an improving alternative exists.'],
   },
   {
     id: 'chow',
