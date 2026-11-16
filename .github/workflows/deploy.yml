@@ -39,6 +39,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Coach evaluator regression tests
+        run: npm run test:coach
+
       - name: Build
         run: npm run build
 
