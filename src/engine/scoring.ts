@@ -208,7 +208,7 @@ export const calculateFan = (ctx: ScoringContext, completeMelds: Meld[]): FanSco
   }
 
   // === 1 FAN ELEMENTS ===
-  if (isAllChows(completeMelds) && !scores.some(s => s.fan >= 3)) {
+  if (isAllChows(completeMelds)) {
     const pair = completeMelds.find(m => m.type === 'pair');
     if (pair && isSuitedTile(pair.baseTile)) {
       scores.push({ name: 'All Chows', fan: 1, description: 'Only sequences' });
@@ -236,7 +236,7 @@ export const calculateFan = (ctx: ScoringContext, completeMelds: Meld[]): FanSco
   const roundWindPung = completeMelds.find(m =>
     isTripletOrQuad(m) && m.baseTile.category === 'wind' && m.baseTile.wind === ctx.roundWind
   );
-  if (roundWindPung && ctx.seatWind !== ctx.roundWind && !scores.some(s => s.name.includes('Winds'))) {
+  if (roundWindPung && !scores.some(s => s.name.includes('Winds'))) {
     scores.push({ name: 'Round Wind', fan: 1, description: `Pung of ${ctx.roundWind} wind` });
   }
 
@@ -266,7 +266,7 @@ export const calculateFan = (ctx: ScoringContext, completeMelds: Meld[]): FanSco
   }
 
   // Concealed hand bonus
-  if (ctx.melds.every(m => m.isConcealed) && !ctx.isSelfDraw) {
+  if (ctx.melds.every(m => m.isConcealed)) {
     scores.push({ name: 'Concealed Hand', fan: 1, description: 'All concealed, won by discard' });
   }
 
@@ -274,13 +274,13 @@ export const calculateFan = (ctx: ScoringContext, completeMelds: Meld[]): FanSco
 };
 
 // Calculate total result
-export const calculateWinResult = (ctx: ScoringContext, completeMelds: Meld[]): WinResult => {
+export const calculateWinResult = (ctx: ScoringContext, completeMelds: Meld[], discarder: Wind | null = null): WinResult => {
   const fanBreakdown = calculateFan(ctx, completeMelds);
   const totalFan = fanBreakdown.reduce((sum, f) => sum + f.fan, 0);
   const meetsMinimum = totalFan >= MIN_FAN;
   const basePoints = fanToPoints(totalFan);
 
-  const payments = calculatePayments(ctx.seatWind, ctx.isSelfDraw, basePoints, ctx.roundWind);
+  const payments = calculatePayments(ctx.seatWind, ctx.isSelfDraw, basePoints, discarder);
 
   return {
     isValid: meetsMinimum,
@@ -292,30 +292,22 @@ export const calculateWinResult = (ctx: ScoringContext, completeMelds: Meld[]): 
   };
 };
 
-// Calculate who pays whom
+// The table uses the discarder-pays-all variant from docs/scoring_2.md.
+// Payments must sum to zero: scores are transferred between players.
 const calculatePayments = (
   winner: Wind,
   isSelfDraw: boolean,
   points: number,
-  roundWind: Wind
+  discarder: Wind | null
 ): PaymentResult => {
   const payments: Record<Wind, number> = { east: 0, south: 0, west: 0, north: 0 };
-
   if (isSelfDraw) {
-    // All others pay the winner
-    for (const w of WINDS) {
-      if (w === winner) {
-        payments[w] = points * 3;  // Winner receives
-      } else {
-        payments[w] = -points;     // Others pay
-      }
+    for (const wind of WINDS) {
+      payments[wind] = wind === winner ? 3 * points : -points;
     }
-  } else {
-    // This is called with discarder info elsewhere
-    // Default: winner gets points (actual discarder payment handled in game logic)
-    payments[winner] = points * 2;
+  } else if (discarder && discarder !== winner) {
+    payments[winner] = 2 * points;
+    payments[discarder] = -2 * points;
   }
-
   return { payments };
 };
-
