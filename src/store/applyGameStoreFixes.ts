@@ -180,7 +180,17 @@ export const applyGameStoreFixes = (store: StoreApi) => {
       store.setState({ claimOffer: null });
 
       if (action === 'pass') {
-        store.getState().nextTurn();
+        // A declined win or pung can still leave a lower-priority claim
+        // available to another player. Resume arbitration before advancing.
+        const version = state.gameVersion;
+        void store.getState().checkClaims(tile, fromPlayer, [player]).then((claimed: boolean) => {
+          const latest = store.getState();
+          if (!claimed && latest.gameVersion === version && latest.phase === 'playing' &&
+              latest.lastDiscard?.instanceId === tile.instanceId &&
+              latest.currentTurn === fromPlayer) {
+            latest.nextTurn();
+          }
+        });
         return;
       }
 
