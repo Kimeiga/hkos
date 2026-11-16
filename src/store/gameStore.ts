@@ -61,7 +61,7 @@ interface GameStore extends GameState {
 
   // AI actions
   playAITurn: () => Promise<void>;
-  checkClaims: (tile: Tile, fromPlayer: Wind) => Promise<boolean>; // Returns true if claimed
+  checkClaims: (tile: Tile, fromPlayer: Wind, declined?: Wind[]) => Promise<boolean>; // Returns true if claimed
 }
 
 // Human is East (dealer) - the most common setup in Mahjong trainers
@@ -651,7 +651,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     get().discardTile(HUMAN_SEAT, tileToDiscard);
   },
 
-  checkClaims: async (tile: Tile, fromPlayer: Wind) => {
+  checkClaims: async (tile: Tile, fromPlayer: Wind, declined: Wind[] = []) => {
     const state = get();
     const turnOrder: Wind[] = ['east', 'south', 'west', 'north'];
     const fromIdx = turnOrder.indexOf(fromPlayer);
@@ -660,6 +660,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     // 1. Check WIN (Priority)
     for (const p of otherPlayers) {
+      if (declined.includes(p)) continue;
       if (canWin(state.players[p].hand, state.players[p].melds, tile) &&
           scoreCandidate(state, p, false)?.isValid === true) {
 
@@ -691,6 +692,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     // 2. Check Pong/Kong (Standard loops)
     for (const p of otherPlayers) {
+      if (declined.includes(p)) continue;
       const canP = canPong(state.players[p].hand, tile);
       const canK = canKong(state.players[p].hand, tile);
 
@@ -752,7 +754,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     // 3. Check Chow (Next player only)
     const nextPlayer = turnOrder[(fromIdx + 1) % 4];
-    if (nextPlayer !== fromPlayer) {
+    if (nextPlayer !== fromPlayer && !declined.includes(nextPlayer)) {
       const chowSets = canChow(state.players[nextPlayer].hand, tile);
       if (chowSets.length > 0) {
         if (state.players[nextPlayer].isHuman) {
