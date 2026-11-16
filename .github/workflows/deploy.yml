@@ -40,7 +40,9 @@ jobs:
         run: npm ci
 
       - name: Coach evaluator regression tests
-        run: npm run test:coach
+        run: |
+          npm run test:coach
+          npm run test:winning
 
       - name: Build
         run: npm run build
