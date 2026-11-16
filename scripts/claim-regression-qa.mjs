@@ -15,7 +15,7 @@ try {
   await page.waitForFunction(() => Boolean(window.__HKOS_QA_STORE__), null, { timeout: 15_000 });
   await page.waitForTimeout(1_200); // allow the normal initial deal timer to finish before replacing state
 
-  const failures = await page.evaluate(() => {
+  const failures = await page.evaluate(async () => {
     const store = window.__HKOS_QA_STORE__;
     const failures = [];
     const assert = (condition, message) => {
@@ -206,9 +206,37 @@ try {
         claimOffer: { tile: discard, fromPlayer: 'south', canWin: false, canPong: true, canKong: false, canChow: false },
       });
       store.getState().resolveClaim('pass');
+      await Promise.resolve();
       const state = store.getState();
       assert(state.claimOffer === null, 'Pass did not clear claim offer');
       assert(state.currentTurn === 'west' && state.turnPhase === 'draw', 'Pass did not advance to the next seat');
+    }
+
+    // Passing a higher-priority win must not cancel another player's pung.
+    // East is waiting for the last red dragon; South holds both other copies.
+    {
+      const ps = players();
+      const discard = dragon('red', 'priority-discard');
+      ps.east.hand = [
+        suited('bamboo', 1, 'priority-b1'), suited('bamboo', 2, 'priority-b2'), suited('bamboo', 3, 'priority-b3'),
+        suited('bamboo', 2, 'priority-b2b'), suited('bamboo', 3, 'priority-b3b'), suited('bamboo', 4, 'priority-b4'),
+        suited('bamboo', 4, 'priority-b4b'), suited('bamboo', 5, 'priority-b5'), suited('bamboo', 6, 'priority-b6'),
+        suited('bamboo', 6, 'priority-b6b'), suited('bamboo', 7, 'priority-b7'), suited('bamboo', 8, 'priority-b8'),
+        dragon('red', 'priority-east-red'),
+      ];
+      ps.south.hand = [dragon('red', 'priority-south-a'), dragon('red', 'priority-south-b')];
+      ps.north.discards = [discard];
+      reset({ players: ps, aiDifficulty: 'easy', currentTurn: 'north', turnPhase: 'draw',
+        lastDiscard: discard, lastDiscardBy: 'north' });
+      await store.getState().checkClaims(discard, 'north');
+      assert(store.getState().claimOffer?.canWin === true, 'Human should receive the higher-priority win offer');
+      store.getState().resolveClaim('pass');
+      await Promise.resolve();
+      const state = store.getState();
+      assert(state.players.south.melds.some(m => m.type === 'pung' && m.baseTile.id === discard.id),
+        'Passing Win incorrectly cancelled South\'s valid pung');
+      assert(state.currentTurn === 'south' && state.turnPhase === 'discard',
+        'Second claimant did not inherit the discard turn');
     }
 
     return failures;
