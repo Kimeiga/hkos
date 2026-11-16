@@ -167,7 +167,15 @@ try {
     // Win: resolving a human win must identify East, not legacy South.
     {
       const ps = players();
-      const discard = suited('character', 5, 'win-discard');
+      const discard = dragon('red', 'win-discard');
+      ps.east.hand = [
+        dragon('red', 'win-own-red-1'), dragon('red', 'win-own-red-2'),
+        suited('bamboo', 1, 'win-b1'), suited('bamboo', 2, 'win-b2'), suited('bamboo', 3, 'win-b3'),
+        suited('character', 1, 'win-c1'), suited('character', 2, 'win-c2'), suited('character', 3, 'win-c3'),
+        suited('dot', 1, 'win-d1'), suited('dot', 2, 'win-d2'), suited('dot', 3, 'win-d3'),
+        { id: 'wind-east', instanceId: 'win-e1', category: 'wind', wind: 'east' },
+        { id: 'wind-east', instanceId: 'win-e2', category: 'wind', wind: 'east' },
+      ];
       ps.south.discards = [discard];
       reset({
         players: ps,
@@ -179,6 +187,10 @@ try {
       store.getState().resolveClaim('win');
       const state = store.getState();
       assert(state.phase === 'finished' && state.winner === 'east', 'Human Win resolved to the wrong seat');
+      assert(state.winResult?.isValid && state.winResult.totalFan >= 3, 'Win did not validate fan minimum');
+      assert(state.winningTile?.instanceId === discard.instanceId, 'Winning discard not recorded');
+      assert(state.players.east.score > 500 && state.players.south.score < 500, 'Win did not transfer points');
+      assert(['east', 'south', 'west', 'north'].reduce((n, wind) => n + state.players[wind].score, 0) === 2000, 'Payments are not zero sum');
     }
 
     // Pass: clear the offer and advance from the discarder to the next seat.
