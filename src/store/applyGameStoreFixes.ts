@@ -67,13 +67,19 @@ export const applyGameStoreFixes = (store: StoreApi) => {
         turnPhase: 'discard',
         lastDiscard: null,
         lastDiscardBy: null,
+        lastDrawnTile: null,
         claimOffer: null,
         selectedTile: null,
+        lastDrawnTile: replacement,
       });
 
       store.getState().updateTeacherSuggestion();
       if (!players[player].isHuman) {
-        setTimeout(() => store.getState().playAITurn(), 600);
+        const version = state.gameVersion;
+        setTimeout(() => {
+          const latest = store.getState();
+          if (latest.gameVersion === version && latest.phase === 'playing' && latest.currentTurn === player) latest.playAITurn();
+        }, 600);
       }
     },
 
@@ -157,7 +163,11 @@ export const applyGameStoreFixes = (store: StoreApi) => {
 
       store.getState().updateTeacherSuggestion();
       if (!players[player].isHuman) {
-        setTimeout(() => store.getState().playAITurn(), 600);
+        const version = state.gameVersion;
+        setTimeout(() => {
+          const latest = store.getState();
+          if (latest.gameVersion === version && latest.phase === 'playing' && latest.currentTurn === player) latest.playAITurn();
+        }, 600);
       }
     },
 
