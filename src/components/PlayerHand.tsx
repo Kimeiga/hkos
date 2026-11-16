@@ -20,6 +20,8 @@ interface PlayerHandProps {
   onTileClick?: (tile: TileType) => void;
   onSort?: () => void;
   canDiscard: boolean;
+  canWin?: boolean;
+  onWin?: () => void;
 }
 
 export const PlayerHand: React.FC<PlayerHandProps> = ({
@@ -35,6 +37,8 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
   onTileClick,
   onSort,
   canDiscard,
+  canWin = false,
+  onWin,
 }) => {
   const showTiles = isHuman || position === 'bottom';
   let rotation: 0 | 90 | 180 | 270 = 0;
@@ -63,6 +67,11 @@ export const PlayerHand: React.FC<PlayerHandProps> = ({
           <span className={`hand-instruction ${selectedTile ? 'confirm' : ''}`}>
             {selectedTile ? 'Selected — tap again to discard' : 'Choose a tile to discard'}
           </span>
+          {canWin && onWin && (
+            <button className="sort-button-integrated" onClick={onWin} aria-label="Declare self-drawn Mahjong win">
+              Win
+            </button>
+          )}
           {onSort && (
             <button className="sort-button-integrated" onClick={onSort}>
               Sort

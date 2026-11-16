@@ -39,6 +39,9 @@ export const GameTable: React.FC = () => {
     resolveClaim,
     dealerSeat,
     winner,
+    winResult,
+    canDeclareSelfDrawWin,
+    declareWin,
   } = useGameStore();
   const [knowledge, setKnowledge] = useState<KnowledgeRequest | null>(null);
 
@@ -115,7 +118,9 @@ export const GameTable: React.FC = () => {
                 ? sortHand
                 : undefined
             }
-            canDiscard={isHuman && currentTurn === wind && turnPhase === 'discard'}
+            canWin={isHuman && canDeclareSelfDrawWin(wind)}
+            onWin={isHuman ? () => declareWin(wind) : undefined}
+            canDiscard={phase === 'playing' && isHuman && currentTurn === wind && turnPhase === 'discard'}
           />
         );
       })}
@@ -125,7 +130,7 @@ export const GameTable: React.FC = () => {
       )}
 
       {phase === 'finished' && (
-        <GameOverOverlay winner={winner} onRestart={initGame} />
+        <GameOverOverlay winner={winner} winResult={winResult} onRestart={initGame} />
       )}
 
       {knowledge && (
@@ -225,12 +230,14 @@ const ActionOverlay: React.FC<{
 
 const GameOverOverlay: React.FC<{
   winner: string | null;
+  winResult: import('../types/game').WinResult | null;
   onRestart: () => void;
-}> = ({ winner, onRestart }) => (
+}> = ({ winner, winResult, onRestart }) => (
   <div className="game-over-overlay">
     <div className="game-over-content">
       <h2>Game Over</h2>
       <p>{winner ? `${winner.toUpperCase()} Wins!` : 'Draw Game'}</p>
+      {winResult && <p>{winResult.totalFan} fan · {winResult.basePoints} base points</p>}
       <button onClick={onRestart}>Play Again</button>
     </div>
   </div>

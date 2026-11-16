@@ -7,13 +7,18 @@ import { Tile, Wind, WINDS, sortTiles } from '../types/tile';
 import { Meld } from '../types/meld';
 import { createTileSet, shuffleTiles } from '../engine/tileFactory';
 import { suggestDiscard } from '../engine/teacher';
-import { calculateShanten } from '../engine/shanten';
+import { evaluateWinningHand } from '../engine/winning';
+import type { ScoringContext } from '../engine/scoring';
 import { canPong, canKong, canChow, canWin } from '../engine/rules';
 import { tilesSameType } from '../types/tile';
 import { AIDifficulty, selectDiscard as aiSelectDiscard, shouldClaim as aiShouldClaim, AIContext } from '../engine/ai';
 
 interface GameStore extends GameState {
   // UI state
+  gameVersion: number;
+  lastDrawnTile: Tile | null;
+  winResult: WinResult | null;
+  canDeclareSelfDrawWin: (player: Wind) => boolean;
   selectedTile: Tile | null;
   teacherSuggestion: TeacherSuggestion | null;
   showTeacher: boolean;
@@ -56,7 +61,7 @@ interface GameStore extends GameState {
 
   // AI actions
   playAITurn: () => Promise<void>;
-  checkClaims: (tile: Tile, fromPlayer: Wind) => Promise<boolean>; // Returns true if claimed
+  checkClaims: (tile: Tile, fromPlayer: Wind, declined?: Wind[]) => Promise<boolean>; // Returns true if claimed
 }
 
 // Human is East (dealer) - the most common setup in Mahjong trainers
@@ -74,6 +79,28 @@ const visibleDiscards = (players: Record<Wind, Player>): Tile[] =>
 
 const publiclyKnownTiles = (players: Record<Wind, Player>): Tile[] =>
   [...visibleDiscards(players), ...visibleMeldTiles(players)];
+
+// All win eligibility and payments use the same rule-engine path. A player may
+// have a structurally complete hand but fail the configured fan minimum.
+const scoreCandidate = (state: GameStore, player: Wind, selfDraw: boolean): WinResult | null => {
+  const candidate = selfDraw ? state.lastDrawnTile : state.lastDiscard;
+  if (!candidate) return null;
+  const hand = state.players[player].hand;
+  if (selfDraw && !hand.some(t => t.instanceId === candidate.instanceId)) return null;
+  const ctx: ScoringContext = {
+    hand: selfDraw ? hand.filter(t => t.instanceId !== candidate.instanceId) : hand,
+    melds: state.players[player].melds,
+    flowers: state.players[player].flowers,
+    winningTile: candidate,
+    seatWind: player,
+    roundWind: state.roundWind,
+    isSelfDraw: selfDraw,
+    isLastTile: state.wall.length === 0,
+    isReplacementTile: false,
+    isRobbingKong: false,
+  };
+  return evaluateWinningHand(ctx, selfDraw ? null : state.lastDiscardBy);
+};
 
 const createInitialPlayers = (): Record<Wind, Player> => ({
   east: { seat: 'east', hand: [], melds: [], flowers: [], discards: [], score: INITIAL_SCORE, isHuman: true },
@@ -102,6 +129,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
   isSelfDraw: false,
 
   // UI state
+  gameVersion: 0,
+  lastDrawnTile: null,
+  winResult: null,
+  canDeclareSelfDrawWin: (player: Wind) => {
+    const state = get();
+    return state.phase === 'playing' && state.currentTurn === player &&
+      state.turnPhase === 'discard' && scoreCandidate(state, player, true)?.isValid === true;
+  },
   selectedTile: null,
   teacherSuggestion: null,
   showTeacher: true,
@@ -118,6 +153,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   initGame: () => {
     console.log('[Game] Initializing...');
+    const version = get().gameVersion + 1;
     const tiles = createTileSet(true);
     const shuffled = shuffleTiles(tiles);
 
@@ -127,6 +163,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     set({
       phase: 'dealing',
+      gameVersion: version,
+      winResult: null,
+      lastDrawnTile: null,
+      claimOffer: null,
+      teacherSuggestion: null,
+      selectedTile: null,
       wall,
       deadWall,
       players: createInitialPlayers(),
@@ -142,12 +184,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
 
     // Auto-deal after init
-    setTimeout(() => get().dealTiles(), 500);
+    setTimeout(() => {
+      if (get().gameVersion === version && get().phase === 'dealing') get().dealTiles();
+    }, 500);
   },
 
   dealTiles: () => {
     console.log('[Game] Dealing tiles...');
     const state = get();
+    if (state.phase !== 'dealing') return;
     const wall = [...state.wall];
     const players = { ...state.players };
 
@@ -184,6 +229,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       phase: 'playing',
       currentTurn: 'east',
       turnPhase: 'east' === state.dealerSeat ? 'discard' : 'draw',
+      lastDrawnTile: players.east.hand[players.east.hand.length - 1] ?? null,
     });
 
     console.log('[Game] Dealt complete. Current Turn:', 'east', 'Phase:', 'east' === state.dealerSeat ? 'discard' : 'draw');
@@ -213,6 +259,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   drawTile: (player: Wind) => {
     const state = get();
+    if (state.phase !== 'playing' || state.currentTurn !== player || state.turnPhase !== 'draw') return null;
     if (state.wall.length === 0) {
       console.log('[Game] Wall empty, game finished.');
       set({ phase: 'finished' });
@@ -252,6 +299,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       wall,
       players,
       turnPhase: 'discard',
+      lastDrawnTile: tile,
       animatingTile: tile,
       animationTarget: 'draw',
     });
@@ -266,8 +314,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   discardTile: (player: Wind, tile: Tile) => {
-    console.log(`[Game] ${player} discarding:`, tile.value ? `${tile.category}-${tile.value}` : tile.category);
     const state = get();
+    if (state.phase !== 'playing' || state.currentTurn !== player || state.turnPhase !== 'discard' ||
+        state.claimOffer || !state.players[player].hand.some(t => t.instanceId === tile.instanceId)) return;
+    console.log(`[Game] ${player} discarding:`, tile.value ? `${tile.category}-${tile.value}` : tile.category);
+    const version = state.gameVersion;
     const players = { ...state.players };
 
     players[player] = {
@@ -284,6 +335,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       players,
       lastDiscard: tile,
       lastDiscardBy: player,
+      lastDrawnTile: null,
+      teacherSuggestion: null,
       turnPhase: 'draw',
       animatingTile: tile,
       animationTarget: 'discard',
@@ -299,7 +352,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       // Guard: Only proceed if this is still the current discard we're processing
       const currentState = get();
-      if (currentState.lastDiscard?.instanceId !== discardInstanceId) {
+      if (currentState.gameVersion !== version || currentState.phase !== 'playing' ||
+          currentState.lastDiscard?.instanceId !== discardInstanceId) {
         console.log('[Game] Stale discard check, skipping nextTurn.');
         return;
       }
@@ -309,7 +363,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if (!claimed) {
         // Double-check we're still on the same discard
         const finalState = get();
-        if (finalState.lastDiscard?.instanceId !== discardInstanceId) {
+        if (finalState.gameVersion !== version || finalState.phase !== 'playing' ||
+            finalState.lastDiscard?.instanceId !== discardInstanceId) {
           console.log('[Game] Stale after claim check, skipping nextTurn.');
           return;
         }
@@ -328,7 +383,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const state = get();
     const players = { ...state.players };
     const discardTile = state.lastDiscard;
-    if (!discardTile) return;
+    if (!discardTile || state.lastDiscardBy !== fromPlayer || state.phase !== 'playing') return;
 
     // Find matching tiles in hand
     const matching = players[player].hand.filter(t => t.id === discardTile.id);
@@ -360,11 +415,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
       turnPhase: 'discard',
       lastDiscard: null,
       lastDiscardBy: null,
+      claimOffer: null,
+      selectedTile: null,
+      lastDrawnTile: null,
     });
 
-    // If AI, trigger turn (discard)
+    get().updateTeacherSuggestion();
     if (!players[player].isHuman) {
-      setTimeout(() => get().playAITurn(), 600);
+      const version = state.gameVersion;
+      setTimeout(() => {
+        if (get().gameVersion === version && get().currentTurn === player && get().phase === 'playing') get().playAITurn();
+      }, 600);
     }
   },
 
@@ -444,13 +505,36 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   declareWin: (player: Wind) => {
-    console.log(`[Game] ${player} WINS!`);
-    // Simplified win declaration - full scoring in a real implementation
+    const state = get();
+    if (state.phase !== 'playing') return null;
+    const selfDraw = state.currentTurn === player && state.turnPhase === 'discard' &&
+      state.lastDrawnTile !== null;
+    const result = scoreCandidate(state, player, selfDraw);
+    if (!result?.isValid) return null;
+
+    const winnerTile = selfDraw ? state.lastDrawnTile : state.lastDiscard;
+    const players = { ...state.players };
+    for (const wind of WINDS) {
+      players[wind] = {
+        ...players[wind],
+        score: players[wind].score + result.finalPayment.payments[wind],
+      };
+    }
+
+    console.log(`[Game] ${player} WINS with ${result.totalFan} fan`);
     set({
+      players,
       phase: 'finished',
       winner: player,
+      winningTile: winnerTile,
+      isSelfDraw: selfDraw,
+      winResult: result,
+      claimOffer: null,
+      teacherSuggestion: null,
+      lastDrawnTile: null,
+      selectedTile: null,
     });
-    return null;
+    return result;
   },
 
   passTurn: () => {
@@ -553,22 +637,32 @@ export const useGameStore = create<GameStore>((set, get) => ({
       console.error('[Game] Auto Play error calculating best move:', err);
     }
 
-    // Simulate think time
+    const version = state.gameVersion;
     await new Promise(r => setTimeout(r, 800));
+    const latest = get();
+    if (!latest.isAutoPlay || latest.gameVersion !== version || latest.phase !== 'playing' ||
+        latest.currentTurn !== HUMAN_SEAT || latest.turnPhase !== 'discard' ||
+        latest.claimOffer || !latest.players[HUMAN_SEAT].hand.some(t => t.instanceId === tileToDiscard.instanceId)) return;
 
-    // Act
+    if (get().canDeclareSelfDrawWin(HUMAN_SEAT)) {
+      get().declareWin(HUMAN_SEAT);
+      return;
+    }
     get().discardTile(HUMAN_SEAT, tileToDiscard);
   },
 
-  checkClaims: async (tile: Tile, fromPlayer: Wind) => {
+  checkClaims: async (tile: Tile, fromPlayer: Wind, declined: Wind[] = []) => {
     const state = get();
     const turnOrder: Wind[] = ['east', 'south', 'west', 'north'];
     const fromIdx = turnOrder.indexOf(fromPlayer);
-    const otherPlayers = turnOrder.filter(p => p !== fromPlayer);
+    // Highest-priority winning claims go to the nearest player in turn order.
+    const otherPlayers = [1, 2, 3].map(offset => turnOrder[(fromIdx + offset) % 4]);
 
     // 1. Check WIN (Priority)
     for (const p of otherPlayers) {
-      if (canWin(state.players[p].hand, state.players[p].melds, tile)) {
+      if (declined.includes(p)) continue;
+      if (canWin(state.players[p].hand, state.players[p].melds, tile) &&
+          scoreCandidate(state, p, false)?.isValid === true) {
 
         // Human Logic
         if (state.players[p].isHuman) {
@@ -598,6 +692,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     // 2. Check Pong/Kong (Standard loops)
     for (const p of otherPlayers) {
+      if (declined.includes(p)) continue;
       const canP = canPong(state.players[p].hand, tile);
       const canK = canKong(state.players[p].hand, tile);
 
@@ -659,7 +754,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     // 3. Check Chow (Next player only)
     const nextPlayer = turnOrder[(fromIdx + 1) % 4];
-    if (nextPlayer !== fromPlayer) {
+    if (nextPlayer !== fromPlayer && !declined.includes(nextPlayer)) {
       const chowSets = canChow(state.players[nextPlayer].hand, tile);
       if (chowSets.length > 0) {
         if (state.players[nextPlayer].isHuman) {
@@ -724,23 +819,30 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({
       currentTurn: nextTurn,
       turnPhase: 'draw',
+      lastDiscard: null,
+      lastDiscardBy: null,
+      lastDrawnTile: null,
+      claimOffer: null,
     });
 
     // Check if next player is Human
+    const version = state.gameVersion;
     if (state.players[nextTurn].isHuman) {
       console.log('[Game] Human turn start. Auto-drawing...');
       setTimeout(() => {
+        const latest = get();
+        if (latest.gameVersion !== version || latest.phase !== 'playing' ||
+            latest.currentTurn !== nextTurn || latest.turnPhase !== 'draw') return;
         get().drawTile(nextTurn);
-        // If Auto Play matches, trigger auto turn after draw
-        if (get().isAutoPlay) {
-          get().playAutoTurn();
-        }
+        if (get().isAutoPlay) get().playAutoTurn();
       }, 500);
-    }
-    // AI Player
-    else {
+    } else {
       console.log(`[Game] Queueing AI turn for ${nextTurn}...`);
-      setTimeout(() => get().playAITurn(), 800);
+      setTimeout(() => {
+        const latest = get();
+        if (latest.gameVersion === version && latest.phase === 'playing' &&
+            latest.currentTurn === nextTurn && latest.turnPhase === 'draw') get().playAITurn();
+      }, 800);
     }
   },
 
@@ -797,19 +899,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return;
     }
 
-    // Draw phase
+    const version = state.gameVersion;
     if (state.turnPhase === 'draw') {
-      get().drawTile(player);
+      if (!get().drawTile(player)) return;
       await new Promise(r => setTimeout(r, 600));
     }
 
-    // Discard Phase - use AI engine
     const newState = get();
+    if (newState.gameVersion !== version || newState.phase !== 'playing' ||
+        newState.currentTurn !== player || newState.turnPhase !== 'discard' ||
+        newState.claimOffer) return;
     const hand = newState.players[player].hand;
 
     if (hand.length > 0) {
-      // Check for self-draw win first
-      if (calculateShanten(hand, newState.players[player].melds) === -1) {
+      // A complete structure is not enough: enforce the configured minimum fan.
+      if (scoreCandidate(newState, player, true)?.isValid === true) {
         console.log(`[Game] AI ${player} declares WIN (self-draw)!`);
         get().declareWin(player);
         return;

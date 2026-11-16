@@ -9,6 +9,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test:coach": "node scripts/coach-engine-qa.mjs",
+    "test:winning": "node scripts/winning-engine-qa.mjs",
     "preview": "vite preview",
     "generate-icons": "node scripts/generate-icons.js"
   },

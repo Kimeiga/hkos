@@ -67,13 +67,18 @@ export const applyGameStoreFixes = (store: StoreApi) => {
         turnPhase: 'discard',
         lastDiscard: null,
         lastDiscardBy: null,
+        lastDrawnTile: null,
         claimOffer: null,
         selectedTile: null,
       });
 
       store.getState().updateTeacherSuggestion();
       if (!players[player].isHuman) {
-        setTimeout(() => store.getState().playAITurn(), 600);
+        const version = state.gameVersion;
+        setTimeout(() => {
+          const latest = store.getState();
+          if (latest.gameVersion === version && latest.phase === 'playing' && latest.currentTurn === player) latest.playAITurn();
+        }, 600);
       }
     },
 
@@ -151,13 +156,18 @@ export const applyGameStoreFixes = (store: StoreApi) => {
         turnPhase: 'discard',
         lastDiscard: isClaimedKong ? null : state.lastDiscard,
         lastDiscardBy: isClaimedKong ? null : state.lastDiscardBy,
+        lastDrawnTile: replacement,
         claimOffer: null,
         selectedTile: null,
       });
 
       store.getState().updateTeacherSuggestion();
       if (!players[player].isHuman) {
-        setTimeout(() => store.getState().playAITurn(), 600);
+        const version = state.gameVersion;
+        setTimeout(() => {
+          const latest = store.getState();
+          if (latest.gameVersion === version && latest.phase === 'playing' && latest.currentTurn === player) latest.playAITurn();
+        }, 600);
       }
     },
 
@@ -170,7 +180,17 @@ export const applyGameStoreFixes = (store: StoreApi) => {
       store.setState({ claimOffer: null });
 
       if (action === 'pass') {
-        store.getState().nextTurn();
+        // A declined win or pung can still leave a lower-priority claim
+        // available to another player. Resume arbitration before advancing.
+        const version = state.gameVersion;
+        void store.getState().checkClaims(tile, fromPlayer, [player]).then((claimed: boolean) => {
+          const latest = store.getState();
+          if (!claimed && latest.gameVersion === version && latest.phase === 'playing' &&
+              latest.lastDiscard?.instanceId === tile.instanceId &&
+              latest.currentTurn === fromPlayer) {
+            latest.nextTurn();
+          }
+        });
         return;
       }
 
