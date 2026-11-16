@@ -116,58 +116,43 @@ export const findPossibleMelds = (tiles: Tile[]): PossibleMeld[] => {
   return melds;
 };
 
-// Check if hand is complete (4 melds + 1 pair)
+// Check an exact four-sets-and-a-pair hand, including already declared sets.
 export const isStandardWinningHand = (tiles: Tile[], melds: Meld[]): boolean => {
-  const totalMelds = melds.filter(m => m.type !== 'pair').length;
-  const tilesInHand = tiles.length;
-  
-  // Already have 4 melds exposed, just need a pair in hand
-  if (totalMelds === 4 && tilesInHand === 2) {
-    return canFormPair(tiles);
-  }
-  
-  // Need to check if remaining tiles can form melds + pair
-  return canFormCompleteHand(tiles, 4 - totalMelds);
+  const declared = melds.filter(m => m.type !== 'pair').length;
+  return canFormCompleteHand(tiles, 4 - declared);
 };
 
-// Recursive function to check if tiles can form N melds plus a pair
+// Pair selection must not depend on tile sort order. In particular the pair
+// can come *before* all four sets, not just after the final set.
 export const canFormCompleteHand = (tiles: Tile[], meldsNeeded: number): boolean => {
-  if (tiles.length === 0 && meldsNeeded === 0) return false; // Need pair
-  if (tiles.length === 2 && meldsNeeded === 0) return canFormPair(tiles);
-  if (tiles.length < 2) return false;
-  if (meldsNeeded < 0) return false;
-  
+  if (meldsNeeded < 0 || tiles.length !== meldsNeeded * 3 + 2) return false;
   const sorted = sortTiles(tiles);
-  const first = sorted[0];
-  
-  // Try to form a pung with first tile
-  const sameType = sorted.filter(t => tilesSameType(t, first));
-  if (sameType.length >= 3) {
-    const remaining = [...sorted];
-    for (let i = 0; i < 3; i++) {
-      const idx = remaining.findIndex(t => tilesSameType(t, first));
-      remaining.splice(idx, 1);
+
+  const take = (from: Tile[], selected: Tile[]): Tile[] => {
+    const ids = new Set(selected.map(t => t.instanceId));
+    return from.filter(t => !ids.has(t.instanceId));
+  };
+
+  const sets = (remaining: Tile[], needed: number): boolean => {
+    if (needed === 0) return remaining.length === 0;
+    if (remaining.length !== needed * 3) return false;
+    const first = remaining[0];
+    const same = remaining.filter(t => tilesSameType(t, first));
+    if (same.length >= 3 && sets(take(remaining, same.slice(0, 3)), needed - 1)) return true;
+    if (isSuitedTile(first) && first.value! <= 7) {
+      const second = remaining.find(t => t.suit === first.suit && t.value === first.value! + 1);
+      const third = remaining.find(t => t.suit === first.suit && t.value === first.value! + 2);
+      if (second && third && sets(take(remaining, [first, second, third]), needed - 1)) return true;
     }
-    if (canFormCompleteHand(remaining, meldsNeeded - 1)) return true;
+    return false;
+  };
+
+  const seen = new Set<string>();
+  for (const tile of sorted) {
+    if (seen.has(tile.id)) continue;
+    seen.add(tile.id);
+    const pair = sorted.filter(t => tilesSameType(t, tile)).slice(0, 2);
+    if (pair.length === 2 && sets(take(sorted, pair), meldsNeeded)) return true;
   }
-  
-  // Try to form a chow with first tile (if suited)
-  if (isSuitedTile(first) && first.value! <= 7) {
-    const t2 = sorted.find(t => t.suit === first.suit && t.value === first.value! + 1);
-    const t3 = sorted.find(t => t.suit === first.suit && t.value === first.value! + 2);
-    if (t2 && t3) {
-      const remaining = [...sorted];
-      const removeOne = (target: Tile) => {
-        const idx = remaining.findIndex(t => t.instanceId === target.instanceId);
-        if (idx >= 0) remaining.splice(idx, 1);
-      };
-      removeOne(first);
-      removeOne(t2);
-      removeOne(t3);
-      if (canFormCompleteHand(remaining, meldsNeeded - 1)) return true;
-    }
-  }
-  
   return false;
 };
-
