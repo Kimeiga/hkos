@@ -62,6 +62,19 @@ interface GameStore extends GameState {
 // Human is East (dealer) - the most common setup in Mahjong trainers
 const HUMAN_SEAT: Wind = 'east';
 
+// Public knowledge only. Do not peek at concealed opponents' hands, concealed
+// kongs, wall or dead wall when calculating a recommendation.
+const visibleMeldTiles = (players: Record<Wind, Player>): Tile[] =>
+  WINDS.flatMap(seat => players[seat].melds
+    .filter(m => !m.isConcealed)
+    .flatMap(m => m.tiles));
+
+const visibleDiscards = (players: Record<Wind, Player>): Tile[] =>
+  WINDS.flatMap(seat => players[seat].discards);
+
+const publiclyKnownTiles = (players: Record<Wind, Player>): Tile[] =>
+  [...visibleDiscards(players), ...visibleMeldTiles(players)];
+
 const createInitialPlayers = (): Record<Wind, Player> => ({
   east: { seat: 'east', hand: [], melds: [], flowers: [], discards: [], score: INITIAL_SCORE, isHuman: true },
   south: { seat: 'south', hand: [], melds: [], flowers: [], discards: [], score: INITIAL_SCORE, isHuman: false },
@@ -191,7 +204,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     console.log('[Game] Sorting hand...');
     const state = get();
     const players = { ...state.players };
-    players.south.hand = sortTiles(players.south.hand);
+    players[HUMAN_SEAT] = {
+      ...players[HUMAN_SEAT],
+      hand: sortTiles(players[HUMAN_SEAT].hand),
+    };
     set({ players });
   },
 
@@ -219,7 +235,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
 
     // Append tile to hand (do not sort automatically)
-    // Only sort for AI players to keep their logic simple, but for human (South), append.
+    // Only sort for AI players to keep their logic simple, but for human (East), append.
     if (players[player].isHuman) {
       players[player] = {
         ...players[player],
@@ -466,7 +482,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
           humanPlayer.hand,
           humanPlayer.melds,
           HUMAN_SEAT,
-          state.roundWind
+          state.roundWind,
+          publiclyKnownTiles(state.players)
         );
         set({ teacherSuggestion: suggestion });
       } else {
@@ -520,7 +537,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
           humanPlayer.hand,
           humanPlayer.melds,
           HUMAN_SEAT,
-          state.roundWind
+          state.roundWind,
+          publiclyKnownTiles(state.players)
         );
         if (suggestion && suggestion.recommendedTile) {
           // Find the actual tile instance in hand that matches the recommendation
@@ -614,6 +632,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             roundWind: state.roundWind,
             discards: allDiscards,
             wallRemaining: state.wall.length,
+            visibleMeldTiles: visibleMeldTiles(state.players),
           };
 
           const decision = aiShouldClaim(state.aiDifficulty, context, tile, {
@@ -670,6 +689,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             roundWind: state.roundWind,
             discards: allDiscards,
             wallRemaining: state.wall.length,
+            visibleMeldTiles: visibleMeldTiles(state.players),
           };
 
           const decision = aiShouldClaim(state.aiDifficulty, context, tile, {
@@ -730,7 +750,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!state.claimOffer) return;
 
     const { fromPlayer, tile } = state.claimOffer;
-    const player = 'south'; // Human is always south in this setup
+    const player = HUMAN_SEAT;
 
     set({ claimOffer: null });
 
@@ -811,6 +831,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         roundWind: newState.roundWind,
         discards: allDiscards,
         wallRemaining: newState.wall.length,
+        visibleMeldTiles: visibleMeldTiles(newState.players),
       };
 
       // Use AI engine to select discard
