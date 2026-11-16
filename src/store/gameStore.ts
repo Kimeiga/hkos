@@ -383,7 +383,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const state = get();
     const players = { ...state.players };
     const discardTile = state.lastDiscard;
-    if (!discardTile) return;
+    if (!discardTile || state.lastDiscardBy !== fromPlayer || state.phase !== 'playing') return;
 
     // Find matching tiles in hand
     const matching = players[player].hand.filter(t => t.id === discardTile.id);
@@ -415,11 +415,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
       turnPhase: 'discard',
       lastDiscard: null,
       lastDiscardBy: null,
+      claimOffer: null,
+      selectedTile: null,
+      lastDrawnTile: null,
     });
 
-    // If AI, trigger turn (discard)
+    get().updateTeacherSuggestion();
     if (!players[player].isHuman) {
-      setTimeout(() => get().playAITurn(), 600);
+      const version = state.gameVersion;
+      setTimeout(() => {
+        if (get().gameVersion === version && get().currentTurn === player && get().phase === 'playing') get().playAITurn();
+      }, 600);
     }
   },
 
@@ -499,13 +505,36 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   declareWin: (player: Wind) => {
-    console.log(`[Game] ${player} WINS!`);
-    // Simplified win declaration - full scoring in a real implementation
+    const state = get();
+    if (state.phase !== 'playing') return null;
+    const selfDraw = state.currentTurn === player && state.turnPhase === 'discard' &&
+      state.lastDrawnTile !== null;
+    const result = scoreCandidate(state, player, selfDraw);
+    if (!result?.isValid) return null;
+
+    const winnerTile = selfDraw ? state.lastDrawnTile : state.lastDiscard;
+    const players = { ...state.players };
+    for (const wind of WINDS) {
+      players[wind] = {
+        ...players[wind],
+        score: players[wind].score + result.finalPayment.payments[wind],
+      };
+    }
+
+    console.log(`[Game] ${player} WINS with ${result.totalFan} fan`);
     set({
+      players,
       phase: 'finished',
       winner: player,
+      winningTile: winnerTile,
+      isSelfDraw: selfDraw,
+      winResult: result,
+      claimOffer: null,
+      teacherSuggestion: null,
+      lastDrawnTile: null,
+      selectedTile: null,
     });
-    return null;
+    return result;
   },
 
   passTurn: () => {
@@ -608,10 +637,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
       console.error('[Game] Auto Play error calculating best move:', err);
     }
 
-    // Simulate think time
+    const version = state.gameVersion;
     await new Promise(r => setTimeout(r, 800));
+    const latest = get();
+    if (!latest.isAutoPlay || latest.gameVersion !== version || latest.phase !== 'playing' ||
+        latest.currentTurn !== HUMAN_SEAT || latest.turnPhase !== 'discard' ||
+        latest.claimOffer || !latest.players[HUMAN_SEAT].hand.some(t => t.instanceId === tileToDiscard.instanceId)) return;
 
-    // Act
+    if (get().canDeclareSelfDrawWin(HUMAN_SEAT)) {
+      get().declareWin(HUMAN_SEAT);
+      return;
+    }
     get().discardTile(HUMAN_SEAT, tileToDiscard);
   },
 
@@ -619,11 +655,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const state = get();
     const turnOrder: Wind[] = ['east', 'south', 'west', 'north'];
     const fromIdx = turnOrder.indexOf(fromPlayer);
-    const otherPlayers = turnOrder.filter(p => p !== fromPlayer);
+    // Highest-priority winning claims go to the nearest player in turn order.
+    const otherPlayers = [1, 2, 3].map(offset => turnOrder[(fromIdx + offset) % 4]);
 
     // 1. Check WIN (Priority)
     for (const p of otherPlayers) {
-      if (canWin(state.players[p].hand, state.players[p].melds, tile)) {
+      if (canWin(state.players[p].hand, state.players[p].melds, tile) &&
+          scoreCandidate(state, p, false)?.isValid === true) {
 
         // Human Logic
         if (state.players[p].isHuman) {
@@ -779,23 +817,30 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({
       currentTurn: nextTurn,
       turnPhase: 'draw',
+      lastDiscard: null,
+      lastDiscardBy: null,
+      lastDrawnTile: null,
+      claimOffer: null,
     });
 
     // Check if next player is Human
+    const version = state.gameVersion;
     if (state.players[nextTurn].isHuman) {
       console.log('[Game] Human turn start. Auto-drawing...');
       setTimeout(() => {
+        const latest = get();
+        if (latest.gameVersion !== version || latest.phase !== 'playing' ||
+            latest.currentTurn !== nextTurn || latest.turnPhase !== 'draw') return;
         get().drawTile(nextTurn);
-        // If Auto Play matches, trigger auto turn after draw
-        if (get().isAutoPlay) {
-          get().playAutoTurn();
-        }
+        if (get().isAutoPlay) get().playAutoTurn();
       }, 500);
-    }
-    // AI Player
-    else {
+    } else {
       console.log(`[Game] Queueing AI turn for ${nextTurn}...`);
-      setTimeout(() => get().playAITurn(), 800);
+      setTimeout(() => {
+        const latest = get();
+        if (latest.gameVersion === version && latest.phase === 'playing' &&
+            latest.currentTurn === nextTurn && latest.turnPhase === 'draw') get().playAITurn();
+      }, 800);
     }
   },
 
@@ -852,19 +897,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return;
     }
 
-    // Draw phase
+    const version = state.gameVersion;
     if (state.turnPhase === 'draw') {
-      get().drawTile(player);
+      if (!get().drawTile(player)) return;
       await new Promise(r => setTimeout(r, 600));
     }
 
-    // Discard Phase - use AI engine
     const newState = get();
+    if (newState.gameVersion !== version || newState.phase !== 'playing' ||
+        newState.currentTurn !== player || newState.turnPhase !== 'discard' ||
+        newState.claimOffer) return;
     const hand = newState.players[player].hand;
 
     if (hand.length > 0) {
-      // Check for self-draw win first
-      if (calculateShanten(hand, newState.players[player].melds) === -1) {
+      // A complete structure is not enough: enforce the configured minimum fan.
+      if (scoreCandidate(newState, player, true)?.isValid === true) {
         console.log(`[Game] AI ${player} declares WIN (self-draw)!`);
         get().declareWin(player);
         return;
