@@ -7,13 +7,18 @@ import { Tile, Wind, WINDS, sortTiles } from '../types/tile';
 import { Meld } from '../types/meld';
 import { createTileSet, shuffleTiles } from '../engine/tileFactory';
 import { suggestDiscard } from '../engine/teacher';
-import { calculateShanten } from '../engine/shanten';
+import { evaluateWinningHand } from '../engine/winning';
+import type { ScoringContext } from '../engine/scoring';
 import { canPong, canKong, canChow, canWin } from '../engine/rules';
 import { tilesSameType } from '../types/tile';
 import { AIDifficulty, selectDiscard as aiSelectDiscard, shouldClaim as aiShouldClaim, AIContext } from '../engine/ai';
 
 interface GameStore extends GameState {
   // UI state
+  gameVersion: number;
+  lastDrawnTile: Tile | null;
+  winResult: WinResult | null;
+  canDeclareSelfDrawWin: (player: Wind) => boolean;
   selectedTile: Tile | null;
   teacherSuggestion: TeacherSuggestion | null;
   showTeacher: boolean;
@@ -75,6 +80,28 @@ const visibleDiscards = (players: Record<Wind, Player>): Tile[] =>
 const publiclyKnownTiles = (players: Record<Wind, Player>): Tile[] =>
   [...visibleDiscards(players), ...visibleMeldTiles(players)];
 
+// All win eligibility and payments use the same rule-engine path. A player may
+// have a structurally complete hand but fail the configured fan minimum.
+const scoreCandidate = (state: GameStore, player: Wind, selfDraw: boolean): WinResult | null => {
+  const candidate = selfDraw ? state.lastDrawnTile : state.lastDiscard;
+  if (!candidate) return null;
+  const hand = state.players[player].hand;
+  if (selfDraw && !hand.some(t => t.instanceId === candidate.instanceId)) return null;
+  const ctx: ScoringContext = {
+    hand: selfDraw ? hand.filter(t => t.instanceId !== candidate.instanceId) : hand,
+    melds: state.players[player].melds,
+    flowers: state.players[player].flowers,
+    winningTile: candidate,
+    seatWind: player,
+    roundWind: state.roundWind,
+    isSelfDraw: selfDraw,
+    isLastTile: state.wall.length === 0,
+    isReplacementTile: false,
+    isRobbingKong: false,
+  };
+  return evaluateWinningHand(ctx, selfDraw ? null : state.lastDiscardBy);
+};
+
 const createInitialPlayers = (): Record<Wind, Player> => ({
   east: { seat: 'east', hand: [], melds: [], flowers: [], discards: [], score: INITIAL_SCORE, isHuman: true },
   south: { seat: 'south', hand: [], melds: [], flowers: [], discards: [], score: INITIAL_SCORE, isHuman: false },
@@ -102,6 +129,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
   isSelfDraw: false,
 
   // UI state
+  gameVersion: 0,
+  lastDrawnTile: null,
+  winResult: null,
+  canDeclareSelfDrawWin: (player: Wind) => {
+    const state = get();
+    return state.phase === 'playing' && state.currentTurn === player &&
+      state.turnPhase === 'discard' && scoreCandidate(state, player, true)?.isValid === true;
+  },
   selectedTile: null,
   teacherSuggestion: null,
   showTeacher: true,
@@ -118,6 +153,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   initGame: () => {
     console.log('[Game] Initializing...');
+    const version = get().gameVersion + 1;
     const tiles = createTileSet(true);
     const shuffled = shuffleTiles(tiles);
 
@@ -127,6 +163,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     set({
       phase: 'dealing',
+      gameVersion: version,
+      winResult: null,
+      lastDrawnTile: null,
+      claimOffer: null,
+      teacherSuggestion: null,
+      selectedTile: null,
       wall,
       deadWall,
       players: createInitialPlayers(),
@@ -142,12 +184,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
 
     // Auto-deal after init
-    setTimeout(() => get().dealTiles(), 500);
+    setTimeout(() => {
+      if (get().gameVersion === version && get().phase === 'dealing') get().dealTiles();
+    }, 500);
   },
 
   dealTiles: () => {
     console.log('[Game] Dealing tiles...');
     const state = get();
+    if (state.phase !== 'dealing') return;
     const wall = [...state.wall];
     const players = { ...state.players };
 
@@ -184,6 +229,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       phase: 'playing',
       currentTurn: 'east',
       turnPhase: 'east' === state.dealerSeat ? 'discard' : 'draw',
+      lastDrawnTile: players.east.hand[players.east.hand.length - 1] ?? null,
     });
 
     console.log('[Game] Dealt complete. Current Turn:', 'east', 'Phase:', 'east' === state.dealerSeat ? 'discard' : 'draw');
@@ -213,6 +259,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   drawTile: (player: Wind) => {
     const state = get();
+    if (state.phase !== 'playing' || state.currentTurn !== player || state.turnPhase !== 'draw') return null;
     if (state.wall.length === 0) {
       console.log('[Game] Wall empty, game finished.');
       set({ phase: 'finished' });
@@ -252,6 +299,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       wall,
       players,
       turnPhase: 'discard',
+      lastDrawnTile: tile,
       animatingTile: tile,
       animationTarget: 'draw',
     });
@@ -266,8 +314,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   discardTile: (player: Wind, tile: Tile) => {
-    console.log(`[Game] ${player} discarding:`, tile.value ? `${tile.category}-${tile.value}` : tile.category);
     const state = get();
+    if (state.phase !== 'playing' || state.currentTurn !== player || state.turnPhase !== 'discard' ||
+        state.claimOffer || !state.players[player].hand.some(t => t.instanceId === tile.instanceId)) return;
+    console.log(`[Game] ${player} discarding:`, tile.value ? `${tile.category}-${tile.value}` : tile.category);
+    const version = state.gameVersion;
     const players = { ...state.players };
 
     players[player] = {
@@ -284,6 +335,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       players,
       lastDiscard: tile,
       lastDiscardBy: player,
+      lastDrawnTile: null,
+      teacherSuggestion: null,
       turnPhase: 'draw',
       animatingTile: tile,
       animationTarget: 'discard',
@@ -299,7 +352,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       // Guard: Only proceed if this is still the current discard we're processing
       const currentState = get();
-      if (currentState.lastDiscard?.instanceId !== discardInstanceId) {
+      if (currentState.gameVersion !== version || currentState.phase !== 'playing' ||
+          currentState.lastDiscard?.instanceId !== discardInstanceId) {
         console.log('[Game] Stale discard check, skipping nextTurn.');
         return;
       }
@@ -309,7 +363,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if (!claimed) {
         // Double-check we're still on the same discard
         const finalState = get();
-        if (finalState.lastDiscard?.instanceId !== discardInstanceId) {
+        if (finalState.gameVersion !== version || finalState.phase !== 'playing' ||
+            finalState.lastDiscard?.instanceId !== discardInstanceId) {
           console.log('[Game] Stale after claim check, skipping nextTurn.');
           return;
         }
