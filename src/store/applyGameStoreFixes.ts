@@ -70,7 +70,6 @@ export const applyGameStoreFixes = (store: StoreApi) => {
         lastDrawnTile: null,
         claimOffer: null,
         selectedTile: null,
-        lastDrawnTile: replacement,
       });
 
       store.getState().updateTeacherSuggestion();
@@ -157,6 +156,7 @@ export const applyGameStoreFixes = (store: StoreApi) => {
         turnPhase: 'discard',
         lastDiscard: isClaimedKong ? null : state.lastDiscard,
         lastDiscardBy: isClaimedKong ? null : state.lastDiscardBy,
+        lastDrawnTile: replacement,
         claimOffer: null,
         selectedTile: null,
       });
